@@ -116,10 +116,24 @@ class Track (object):
         _beat_times = librosa.frames_to_time(_beat_frames, sr=self.sr)  # Frame indices of beat events -> Timestamps
         return _beat_times
 
+    def plot_beat_times(self: class_name, ax: plt.Axes = None) -> plt.Axes:
+        """
+        Plot the waveform (with beat indicators) of self to the given axis if available, else plot to new axis.
+
+        :param ax: The axis of the figure on which to plot the waveform
+        :type ax: plt.Axes
+        :return: Axis on which the waveform was plotted
+        :rtype: plt.Axes
+        """
+        ax = self.plot(ax)
+        beats = self.get_beat_times()
+        [ax.axvline(x=_x, color='k', lw=0.5, linestyle='dashed') for _x in beats]  # NOTE: Plot v-lines @ beat x-values.
+        return ax
+
 
 track1 = Track(librosa.ex('choice', hq=True))
 track2 = Track(librosa.example('nutcracker'))
-b1 = track1.get_beat_times()
-b2 = track2.get_beat_times()
-track1.plot_stft()
-# TODO: add plot_stft_with_beats()
+track1.plot_beat_times()  # TODO: Seems to miss beats near the end of the file. Intentional?
+plt.show()
+track2.plot_stft()
+plt.show()
