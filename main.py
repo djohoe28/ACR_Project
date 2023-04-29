@@ -2,14 +2,18 @@
 import os
 from datetime import datetime
 from enum import Enum
+from typing import Optional, Union, Any
 
 import librosa
 import librosa.display
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy
 import sounddevice
 import sounddevice as sd
 import soundfile as sf
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 # Initializations
 DEF_REC_PATH = "Recordings"  # Default Recordings Path
@@ -100,37 +104,101 @@ class Track(object):
         if wait:
             sd.wait()
 
-    def plot(self: class_name, ax: plt.Axes = None) -> plt.Axes:
+    def plot(self: class_name, ax: plt.Axes = None, fig: plt.Figure = None) -> (plt.Figure, plt.Axes):
         """
         Plot the waveform of self to the given axis if available, else plot to new axis.
 
         :param ax: The axis of the figure on which to plot the waveform
         :type ax: plt.Axes
-        :return: Axis on which the waveform was plotted
-        :rtype: plt.Axes
+        :param fig: The figure on which to plot the waveform
+        :type fig: plt.Figure
+        :return: Figure, Axis on which the waveform was plotted
+        :rtype: (plt.Figure, plt.Axes)
         """
         if ax is None:
-            _fig, _ax = plt.subplots()  # {fig} is only used as tuple filler.
-        else:
-            _ax = ax
+            fig, ax = plt.subplots()  # {fig} is only used as tuple filler.
+        if fig is None:
+            fig = ax.get_figure()
         librosa.display.waveshow(y=self.y, sr=self.sr, ax=ax)
-        _ax.set(title=f"Waveform: {self.title}")
-        _ax.label_outer()
-        return _ax
+        ax.set(title=f"Waveform: {self.title}")
+        ax.label_outer()
+        return fig, ax
 
-    def get_stft(self: class_name) -> np.ndarray:
+    def get_stft(self: class_name, n_fft=2048, hop_length=None, win_length=None) -> np.ndarray:
         """
         Get the Short-Time Fourier Transform (STFT) of the Track.
 
         :return: Track's STFT.
         :rtype: np.ndarray
         """
-        return librosa.stft(self.y)
+        win_length = win_length if win_length is not None else n_fft
+        hop_length = hop_length if hop_length is not None else win_length // 4
+        return librosa.stft(self.y, n_fft=n_fft, win_length=win_length, hop_length=hop_length)
 
-    def plot_stft(self: class_name):
-        """Plot the STFT of the track in a new window."""
-        db = librosa.amplitude_to_db(np.abs(self.get_stft()), ref=np.max)
-        librosa.display.specshow(db, sr=self.sr, y_axis='log', x_axis='time')
+    def plot_stft(self: class_name, ax: plt.Axes = None, fig: plt.Figure = None) \
+            -> tuple[Union[Figure, Any], Union[Axes, Any]]:
+        """
+        Plot the STFT of the track in a new window.
+
+        :param ax: The axis of the figure on which to plot the STFT
+        :type ax: plt.Axes
+        :param fig: The figure on which to plot the STFT
+        :type fig: plt.Figure
+        :return: Figure, Axis on which the STFT was plotted
+        :rtype: (plt.Figure, plt.Axes)
+        """
+        return plot_stft_spectrogram(self.get_stft(), sr=self.sr, ax=ax, fig=fig)
+
+    def get_constellation_map(self: class_name, threshold=0.5, distance=10):
+        """Get a copy of the track's STFT where all non-peaks are set to 0."""
+        stft = np.abs(self.get_stft())  # Usually only magnitude is relevant for peak detection.
+        peaks = np.zeros(stft.shape, dtype=bool)  # Boolean array: x[i,j] = true -> x[i,j] is a peak.
+        for time_idx in range(stft.shape[1]):  # Loop through time axis
+            time_slice_maxima = scipy.signal.find_peaks(stft[:, time_idx], threshold=threshold, distance=distance)[0]
+            if len(time_slice_maxima) > 0:  # if any number of peaks was found
+                for freq_idx in time_slice_maxima:
+                    peaks[freq_idx, time_idx] = True
+        maxima_stft = np.where(peaks, 1, 0)  # A 2D array where only maxima retain their value; else 0.
+        return maxima_stft
+
+    def plot_constellation_map(self: class_name,
+                               threshold: float = 0.5,
+                               distance: int = 10,
+                               ax: plt.Axes = None, fig: plt.Figure = None):
+        """
+        Plot the Constellation Map of the track.
+
+        :param threshold: Required threshold value for determining peaks.
+        :type threshold: float
+        :param distance: Required distance (between peaks) value for determining peaks.
+        :type distance: int
+        :param ax: The axis of the figure on which to plot the STFT
+        :type ax: plt.Axes
+        :param fig: The figure on which to plot the STFT
+        :type fig: plt.Figure
+        :return: Figure, Axis on which the STFT was plotted
+        :rtype: (plt.Figure, plt.Axes)
+        """
+        return plot_stft_spectrogram(self.get_constellation_map(threshold=threshold, distance=distance), sr=self.sr,
+                                     ax=ax, fig=fig)
+
+    def plot_stft_and_constellation(self: class_name,
+                                    threshold: float = 0.5, distance: int = 10) \
+            -> tuple[plt.Figure, plt.Axes]:
+        """
+        Plot the STFT and the Constellation Map of the Track, side-by-side on the same Figure.
+
+        :param threshold: Required threshold value for determining peaks.
+        :type threshold: float
+        :param distance: Required distance (between peaks) value for determining peaks.
+        :type distance: int
+        :return: Figure, Axes on which the STFT & Constellation Map were plotted.
+        :rtype: (plt.Figure, plt.Axes)
+        """
+        fig, axs = plt.subplots(1, 2, sharex="all", sharey="all")
+        fig, axs[0] = self.plot_stft(fig=fig, ax=axs[0])
+        fig, axs[1] = self.plot_constellation_map(fig=fig, ax=axs[1], threshold=threshold, distance=distance)
+        return fig, axs
 
     def get_beat_times(self: class_name) -> np.ndarray:
         """
@@ -144,22 +212,66 @@ class Track(object):
         _beat_times = librosa.frames_to_time(_beat_frames, sr=self.sr)  # Frame indices of beat events -> Timestamps
         return _beat_times
 
-    def plot_beat_times(self: class_name, ax: plt.Axes = None) -> plt.Axes:
+    def plot_beat_times(self: class_name, ax: plt.Axes = None, fig: plt.Figure = None) \
+            -> tuple[Figure, Axes]:
         """
         Plot the waveform (with beat indicators) of self to the given axis if available, else plot to new axis.
 
+        :param fig: The figure on which to plot the waveform
+        :type fig: plt.Figure
         :param ax: The axis of the figure on which to plot the waveform
         :type ax: plt.Axes
-        :return: Axis on which the waveform was plotted
-        :rtype: plt.Axes
+        :return: Figure, Axis on which the waveform was plotted
+        :rtype: (plt.Figure, plt.Axes)
         """
-        ax = self.plot(ax)
+        if ax is None:
+            fig, ax = plt.subplots()
+        if fig is None:
+            fig = ax.get_figure()
+        fig, ax = self.plot(ax=ax, fig=fig)
         beats = self.get_beat_times()
         [ax.axvline(x=_x, color='k', lw=0.5, linestyle='dashed') for _x in beats]  # NOTE: Plot v-lines @ beat x-values.
-        return ax
+        return fig, ax
 
 
 # Utilities
+def plot_stft_spectrogram(data: np.ndarray, sr: int = DEF_SR,
+                          ax: plt.Axes = None, fig: plt.Figure = None,
+                          xlim: Optional[float] = None,
+                          ylim: Optional[float] = None) \
+        -> (plt.Figure, plt.Axes):
+    """
+    Plot an STFT spectrogram.
+
+    :param data: STFT to plot.
+    :type data: np.ndarray
+    :param sr: Sample Rate of STFT to plot.
+    :type sr: int
+    :param ax: Axes on which to plot the STFT.
+    :type ax: plt.Axes
+    :param fig: Figure on which to plot the STFT.
+    :type fig: plt.Figure
+    :param xlim: Limits of the X-axis (Time) to plot.
+    :type xlim: Optional[float]
+    :param ylim: Limits of the Y-axis (Frequency) to plot.
+    :type xlim: Optional[float]
+    :return: Figure, Axes on which the STFT was plotted.
+    :rtype: (plt.Figure, plt.Axes)
+    """
+    if ax is None:
+        fig, ax = plt.subplots()
+    if fig is None:
+        fig = ax.get_figure()
+    if xlim is not None:
+        ax.set_xlim(xlim)
+    if ylim is not None:
+        ax.set_ylim(ylim)
+    db = librosa.amplitude_to_db(np.abs(data), ref=np.max)  # NOTE: Generally speaking, only the magnitude is relevant.
+    img = librosa.display.specshow(db, sr=sr, y_axis='log', x_axis='time', ax=ax)
+    fig.colorbar(img, ax=ax, format="%+2.0f dB")
+    return fig, ax
+
+
 def chirp_track(sr: int = DEF_SR, duration: float = DEF_DURATION) -> Track:
     """
     Creates a new Track instance with a synthetic chirp, going from C3 to C5.
@@ -177,6 +289,7 @@ def chirp_track(sr: int = DEF_SR, duration: float = DEF_DURATION) -> Track:
 
 
 def example_load() -> None:
+    """Loads the 'choice' and 'nutcracker' example file from the librosa example library as Track instances."""
     track1 = Track(librosa.ex('choice', hq=True))
     track2 = Track(librosa.example('nutcracker'))
     track1.plot_beat_times()  # TODO: Seems to miss beats near the end of the file. Intentional?
@@ -304,7 +417,7 @@ def main() -> Return:
 
 
 if __name__ == "__main__":
-    main()
+    pass  # main()
 
 # TODO:
 #  COMPLETE: Change Sample Rate -> Higher SR = shorter higher pitch
@@ -313,4 +426,9 @@ if __name__ == "__main__":
 #  COMPLETE: Playback -> Not tested with relative/absolute path.
 #  COMPLETE: Recording (python-sounddevice = NumPy / pyaudio = byte) -> Used python-sounddevice, as it's based on NumPy.
 #  IN PROGRESS: Change STFT window size
-#  BLOCKED: Initial database -> Waiting to get home to rip CDs.
+#  IN PROGRESS: Initial database -> Ripped Home CDs, will rip friends' CDs in the future.
+#  IN PROGRESS: Play with peak_find parameters to affect Constellation Map.
+#  NOTE: show patch as window, i.e: 8x8, 3x3. Use np.max. Control target area / k parameters. (5 sec, 1024 bins)
+
+_track = Track(librosa.ex('choice', hq=True))
+_fig, _axs = _track.plot_stft_and_constellation(threshold=0.75, distance=15)
