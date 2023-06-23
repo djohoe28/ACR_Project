@@ -1,5 +1,3 @@
-import datetime
-
 from sklearn.base import BaseEstimator
 from sklearn.metrics import make_scorer
 from sklearn.model_selection import GridSearchCV
@@ -26,11 +24,11 @@ def get_anchors(title: str, maxima_width, maxima_height):
     _stft = np.abs(db_stft[title])
     _structure = np.ones((maxima_width, maxima_height))
     # Apply a boolean filter to each point => (new_point = True if point is maxima else False).
-    _maxima_bool_mask = scipy.ndimage.maximum_filter(_stft, footprint=_structure, mode='constant') == _stft
+    _maxima_bool_mask = maximum_filter(_stft, footprint=_structure, mode='constant') == _stft
     # Create an "image mask" of the background
     _background = (_stft == 0)
     # Erode background to subtract from _maxima_bool_mask in order to ignore the border points (technically extrema)
-    _eroded = scipy.ndimage.binary_erosion(_background, structure=_structure, border_value=1)
+    _eroded = binary_erosion(_background, structure=_structure, border_value=1)
     # Apply XOR to remove eroded background (i.e: border points) from result
     return _maxima_bool_mask ^ _eroded
 

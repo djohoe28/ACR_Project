@@ -1,10 +1,10 @@
+from TrackList import *
+
 from typing import Sequence
 
 from sklearn.base import BaseEstimator
 from sklearn.metrics import make_scorer
 from sklearn.model_selection import GridSearchCV
-
-from TrackList import *
 
 
 class Cacher(object):

@@ -1,9 +1,10 @@
 #  Copyright (c) 2022. Code by DJohoe28.
+from TrackList import *
+
 import argparse
 import time
-from datetime import timedelta
 
-from TrackList import *
+from datetime import timedelta
 
 parser = argparse.ArgumentParser(
     prog="ACR Project",
@@ -23,8 +24,9 @@ parser.add_argument('-d', '--distance', default=OPTIONS["Distance"], type=Intege
 # TODO: Add new OPTIONS members.
 args = parser.parse_args()
 
-sd.default.samplerate = OPTIONS["SampleRate"]  # Currently unused, as we know each file's sample rate
-sd.default.channels = OPTIONS["Channels"]  # Set sound-device's default to Stereo
+if not OPTIONS["COLAB"]:
+    sd.default.samplerate = OPTIONS["SampleRate"]  # Currently unused, as we know each file's sample rate
+    sd.default.channels = OPTIONS["Channels"]  # Set sound-device's default to Stereo
 
 
 # Utilities
@@ -97,11 +99,16 @@ def main() -> Return:
 
     def stop() -> Return:
         """Stop playing all currently playing audios on sound-device."""
+        if OPTIONS["COLAB"]:
+            return Return.COLAB_ERROR
         sd.stop()
         return Return.SUCCESS
 
     def record(wait: bool = True, save: bool = True, add: bool = False, ext: AnyStr = OPTIONS["FileType"]) -> Return:
         """Record from sound-device."""
+        if OPTIONS["COLAB"]:
+            print("This functionality is unavailable for Google Colab. Please use a sample file, instead.")
+            return Return.COLAB_ERROR
         try:
             _duration = float(
                 input(f"Please enter recording Duration (seconds, Default={OPTIONS['DefaultDuration']}):") or OPTIONS[
@@ -109,7 +116,7 @@ def main() -> Return:
         except ValueError:
             print("Duration invalid. Please try again.")
             return Return.VALUE_ERROR
-        if OPTIONS["SampleRate"] is not None:
+        if OPTIONS["SampleRate"] is None:
             try:
                 _sr = int(input(f"Please enter Sample Rate (Hz, Default={OPTIONS['DefaultSampleRate']}):") or OPTIONS[
                     "SampleRate"])
@@ -117,7 +124,7 @@ def main() -> Return:
                 print("Sample Rate invalid. Please try again.")
                 return Return.VALUE_ERROR
         else:
-            _sr = sd.default.samplerate
+            _sr = OPTIONS["SampleRate"]
         _recording = sd.rec(int(_duration * _sr))
         if wait:
             sd.wait()  # Wait for recording to finish.

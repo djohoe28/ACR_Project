@@ -1,6 +1,6 @@
-from typing import List
-
 from Track import *
+
+from typing import List
 
 
 def get_constellation_map(title: AnyStr,
@@ -22,11 +22,11 @@ def get_constellation_map(title: AnyStr,
     _stft = np.abs(np.load(os.path.join(OPTIONS["CachePath"], "STFTs", f'{title}.npy')))
     _structure = np.ones((maxima_width, maxima_height))
     # Apply a boolean filter to each point => (new_point = True if point is maxima else False).
-    _is_maxima = scipy.ndimage.maximum_filter(_stft, footprint=_structure, mode='constant') == _stft
+    _is_maxima = maximum_filter(_stft, footprint=_structure, mode='constant') == _stft
     # Create an "image mask" of the background
     _background = (_stft == 0)
     # Erode background to subtract from maxima mask in order to ignore the border points (they're technically extrema.)
-    _eroded = scipy.ndimage.binary_erosion(_background, structure=_structure, border_value=1)
+    _eroded = binary_erosion(_background, structure=_structure, border_value=1)
     # Apply XOR to remove eroded background (i.e: border points) from result
     return _is_maxima ^ _eroded
 

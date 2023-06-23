@@ -1,16 +1,19 @@
-import copy
-import os
-import pickle
+from Utilities import *
+
 from typing import Optional
 
+import os
+import copy
+import pickle
 import librosa
 import librosa.display
 import matplotlib.pyplot as plt
-import scipy
-import sounddevice as sd
 import soundfile as sf
 
-from Utilities import *
+if not OPTIONS["COLAB"]:
+    import sounddevice as sd
+
+from scipy.ndimage import maximum_filter, binary_erosion
 
 
 class Track(object):
@@ -98,6 +101,8 @@ class Track(object):
 
     def play(self: class_name, wait: Boolean = OPTIONS["Synchronous"]) -> None:
         """Play self using sounddevice."""
+        if OPTIONS["COLAB"]:
+            return
         sd.play(self.y, self.sr)
         if wait:
             sd.wait()
@@ -209,11 +214,11 @@ class Track(object):
         _size = (maxima_width, maxima_height)
         _structure = np.ones(_size)
         # Apply a boolean filter to each point => (new_point = True if point is maxima else False).
-        _maxima_mask = scipy.ndimage.maximum_filter(_stft, size=_size, mode='constant') == _stft
+        _maxima_mask = maximum_filter(_stft, size=_size, mode='constant') == _stft
         # Create an "image mask" of the background
         _background = (_stft == 0)
         # Erode background to subtract from _maxima_mask in order to ignore the border points (technically extrema)
-        _eroded = scipy.ndimage.binary_erosion(_background, structure=_structure, border_value=1)
+        _eroded = binary_erosion(_background, structure=_structure, border_value=1)
         # Apply XOR to remove eroded background (i.e: border points) from result
         return _maxima_mask ^ _eroded
 
