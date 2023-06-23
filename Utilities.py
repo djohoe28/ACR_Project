@@ -1,7 +1,8 @@
-import datetime
 from enum import Enum
 from typing import Union, Iterable, Dict, AnyStr, Tuple, Any
 
+import sys
+import datetime
 import numpy as np
 
 # Documentation
@@ -10,8 +11,16 @@ Float = float
 Boolean = bool
 Hashes = Dict[AnyStr, Dict[AnyStr, Integer]]
 
+
+def is_google_colab() -> Boolean:
+    """Returns whether this program is running on the Google Colab service."""
+    return 'google.colab' in sys.modules
+
+
+# Global Parameters
 OPTIONS: Dict[AnyStr, Any] = {
     "DEBUG": False,
+    "COLAB": False,
     "Synchronous": True,
     "TimestampFormat": "%Y-%m-%d %H:%M:%S",
     # Database
@@ -24,6 +33,7 @@ OPTIONS: Dict[AnyStr, Any] = {
     "SampleRate": 44100,  # Sample Rate
     "Channels": 2,  # Channels
     # Training Properties
+    "ParameterSamples": 16,
     "AverageHashCount": 2500,
     "CacheFilename": "cacher.npy",
     # Short-Time Fourier Transform (STFT) Parameters
@@ -44,6 +54,7 @@ OPTIONS: Dict[AnyStr, Any] = {
 
 
 class Return(Enum):
+    """Status Code Enum"""
     SUCCESS = 1  # The function performed successfully.
     CANCEL = 0  # The function was cancelled.
     UNDEF_ERROR = -1  # All errors not mentioned below
@@ -51,6 +62,7 @@ class Return(Enum):
     VALUE_ERROR = -3  # Value (conversion) Error
     AUDIO_ERROR = -4  # Audio (playback) Error
     FILES_ERROR = -5  # File (soundfile) Error
+    COLAB_ERROR = -6  # Google Colab Error
 
 
 def timestamp(strftime: AnyStr = OPTIONS["TimestampFormat"]):

@@ -1,10 +1,10 @@
+from TrackList import *
+
 from typing import Sequence
 
 from sklearn.base import BaseEstimator
 from sklearn.metrics import make_scorer
 from sklearn.model_selection import GridSearchCV
-
-from TrackList import *
 
 
 class Cacher(object):
@@ -60,10 +60,11 @@ class Cacher(object):
         self.verbose: Boolean = verbose
         self.is_cached: Boolean = self.path is not None
         self.titles: List[AnyStr] = list()
-        for _filename in os.listdir(os.path.join(OPTIONS["CachePath"], "Pickles")):
+        for _filename in os.listdir(os.path.join(OPTIONS["CachePath"], Folders.Pickle.name)):
             if _filename.endswith('.pkl'):
                 self.titles.append(
-                    os.path.basename(os.path.splitext(os.path.join(OPTIONS["CachePath"], "Pickles", _filename))[0]))
+                    os.path.basename(
+                        os.path.splitext(os.path.join(OPTIONS["CachePath"], Folders.Pickle.name, _filename))[0]))
         self.shape: Tuple[Integer, Integer, Integer, Integer] = (
             len(self.titles), len(param_grid['width']), len(param_grid['height']), len(param_grid['offset']))
         self.get_t: Dict[AnyStr, Integer] = {self.titles[_i]: _i for _i in range(self.shape[0])}
@@ -81,8 +82,9 @@ class Cacher(object):
         print(f'Caching! {timestamp()}')
         _ctr: Integer = 0
         for title in self.titles:
-            self.tracks[title] = load_from_pickle(os.path.join(OPTIONS["CachePath"], "Pickles", f'{title}.pkl'))
-            self.anchors[title] = np.load(os.path.join(OPTIONS["CachePath"], "Anchors", f"{title}.npy"))
+            self.tracks[title] = load_from_pickle(
+                os.path.join(OPTIONS["CachePath"], Folders.Pickle.name, f'{title}.pkl'))
+            self.anchors[title] = np.load(os.path.join(OPTIONS["CachePath"], Folders.Anchor.name, f"{title}.npy"))
         for _t, _w, _h, _o in np.ndindex(*self.shape):  # np.ndindex raises warning it doesn't expect tuple; oversight?
             _title: AnyStr = self.titles[_t]
             _width: Integer = self.param_grid['width'][_w]
@@ -224,14 +226,15 @@ def train(param_grid: Dict[AnyStr, Sequence],
     return best_params_, best_score_
 
 
-print(f'Starting! {timestamp()}')
-param_samples: Integer = 16
-param_grid: Dict[AnyStr, Sequence] = {
-    'width': np.linspace(6174, 22050, param_samples, dtype=Integer),  # 140ms ~ 500ms
-    'height': np.linspace(1, OPTIONS["SampleRate"] // 2 + 1, param_samples, dtype=Integer),  # Nyquist Frequency
-    'offset': np.linspace(1, OPTIONS["SampleRate"] // 2 + 1, param_samples, dtype=Integer),
-}
-best_params: Any
-best_score: Any
-best_params, best_score = train(param_grid, filepath=None)
-print(f'Done! {timestamp()}')
+def optimize_parameters() -> Tuple[Any, Any]:
+    """Returns the training results of default parameters."""
+    best_params: Any
+    best_score: Any
+    param_samples: Integer = OPTIONS["ParameterSamples"]
+    param_grid: Dict[AnyStr, Sequence] = {
+        'width': np.linspace(1, OPTIONS["SampleRate"] // 2 + 1, param_samples, dtype=Integer),  # 140ms ~ 500ms
+        'height': np.linspace(1, OPTIONS["SampleRate"] // 2 + 1, param_samples, dtype=Integer),  # Nyquist Frequency
+        'offset': np.linspace(1, OPTIONS["SampleRate"] // 2 + 1, param_samples, dtype=Integer),
+    }
+    best_params, best_score = train(param_grid, filepath=None)
+    return best_params, best_score

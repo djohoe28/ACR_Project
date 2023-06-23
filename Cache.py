@@ -1,6 +1,16 @@
+from Track import *
+
 from typing import List
 
-from Track import *
+
+class Folders(Enum):
+    Pickle = "Pickle"
+    STFT = "STFT"
+    Anchor = "Anchor"
+    CMap = "CMap"
+    Hash = "Hash"
+    Duration = "Durations.pkl"
+    Shapes = "Shapes.pkl"
 
 
 def get_constellation_map(title: AnyStr,
@@ -19,14 +29,14 @@ def get_constellation_map(title: AnyStr,
     :return: Constellation Map of self
     :rtype: np.ndarray
     """
-    _stft = np.abs(np.load(os.path.join(OPTIONS["CachePath"], "STFTs", f'{title}.npy')))
+    _stft = np.abs(np.load(os.path.join(OPTIONS["CachePath"], Folders.STFT.name, f'{title}.npy')))
     _structure = np.ones((maxima_width, maxima_height))
     # Apply a boolean filter to each point => (new_point = True if point is maxima else False).
-    _is_maxima = scipy.ndimage.maximum_filter(_stft, footprint=_structure, mode='constant') == _stft
+    _is_maxima = maximum_filter(_stft, footprint=_structure, mode='constant') == _stft
     # Create an "image mask" of the background
     _background = (_stft == 0)
     # Erode background to subtract from maxima mask in order to ignore the border points (they're technically extrema.)
-    _eroded = scipy.ndimage.binary_erosion(_background, structure=_structure, border_value=1)
+    _eroded = binary_erosion(_background, structure=_structure, border_value=1)
     # Apply XOR to remove eroded background (i.e: border points) from result
     return _is_maxima ^ _eroded
 
@@ -38,7 +48,7 @@ def get_anchors(title: AnyStr) -> np.ndarray:
     :return: Anchors of self
     :rtype: np.ndarray
     """
-    return nonzero_to_array(np.load(os.path.join(OPTIONS["CachePath"], "CMaps", f'{title}.npy')))
+    return nonzero_to_array(np.load(os.path.join(OPTIONS["CachePath"], Folders.CMap.name, f'{title}.npy')))
 
 
 def get_titles() -> List[AnyStr]:
@@ -78,10 +88,10 @@ def get_titles_from_cache(load: Boolean = False, verbose: Boolean = True) -> Lis
             print(f'{_i + 1} / {len(_titles)} = {_title}')
             _track = Track(os.path.join(OPTIONS["DatabasePath"], f'{_title}.{OPTIONS["RecordingExtension"]}'))
             # NOTE: Pickle *sometimes* runs the _evaluate functions!
-            save_as_pickle(os.path.join(OPTIONS["CachePath"], "Pickles", f'{_title}.pkl'), _track)
-            # np.save(os.path.join(OPTIONS["CachePath"], "STFTs", f'{_title}.npy'), _track.stft)
-            # np.save(os.path.join(OPTIONS["CachePath"], "CMaps", f'{_title}.npy'), _track.constellation_map)
-            # np.save(os.path.join(OPTIONS["CachePath"], "Anchors", f'{_title}.npy'), _track.anchors)
-        # save_as_pickle(os.path.join(OPTIONS["CachePath"], "Durations.pkl"), _durations)
-        save_as_pickle(os.path.join(OPTIONS["CachePath"], "Shapes.plk"), _shapes)
+            save_as_pickle(os.path.join(OPTIONS["CachePath"], Folders.Pickle.name, f'{_title}.pkl'), _track)
+            np.save(os.path.join(OPTIONS["CachePath"], Folders.STFT.name, f'{_title}.npy'), _track.stft)
+            np.save(os.path.join(OPTIONS["CachePath"], Folders.CMap.name, f'{_title}.npy'), _track.cmap)
+            np.save(os.path.join(OPTIONS["CachePath"], Folders.Anchor.name, f'{_title}.npy'), _track.anchors)
+        save_as_pickle(os.path.join(OPTIONS["CachePath"], Folders.Duration.name), _durations)
+        save_as_pickle(os.path.join(OPTIONS["CachePath"], Folders.Shapes.name), _shapes)
     return _titles

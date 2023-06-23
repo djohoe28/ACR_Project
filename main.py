@@ -1,9 +1,10 @@
 #  Copyright (c) 2022. Code by DJohoe28.
+from Optimizer import *
+
 import argparse
 import time
-from datetime import timedelta
 
-from TrackList import *
+from datetime import timedelta
 
 parser = argparse.ArgumentParser(
     prog="ACR Project",
@@ -23,8 +24,9 @@ parser.add_argument('-d', '--distance', default=OPTIONS["Distance"], type=Intege
 # TODO: Add new OPTIONS members.
 args = parser.parse_args()
 
-sd.default.samplerate = OPTIONS["SampleRate"]  # Currently unused, as we know each file's sample rate
-sd.default.channels = OPTIONS["Channels"]  # Set sound-device's default to Stereo
+if not OPTIONS["COLAB"]:
+    sd.default.samplerate = OPTIONS["SampleRate"]  # Currently unused, as we know each file's sample rate
+    sd.default.channels = OPTIONS["Channels"]  # Set sound-device's default to Stereo
 
 
 # Utilities
@@ -97,11 +99,16 @@ def main() -> Return:
 
     def stop() -> Return:
         """Stop playing all currently playing audios on sound-device."""
+        if OPTIONS["COLAB"]:
+            return Return.COLAB_ERROR
         sd.stop()
         return Return.SUCCESS
 
     def record(wait: bool = True, save: bool = True, add: bool = False, ext: AnyStr = OPTIONS["FileType"]) -> Return:
         """Record from sound-device."""
+        if OPTIONS["COLAB"]:
+            print("This functionality is unavailable for Google Colab. Please use a sample file, instead.")
+            return Return.COLAB_ERROR
         try:
             _duration = float(
                 input(f"Please enter recording Duration (seconds, Default={OPTIONS['DefaultDuration']}):") or OPTIONS[
@@ -109,7 +116,7 @@ def main() -> Return:
         except ValueError:
             print("Duration invalid. Please try again.")
             return Return.VALUE_ERROR
-        if OPTIONS["SampleRate"] is not None:
+        if OPTIONS["SampleRate"] is None:
             try:
                 _sr = int(input(f"Please enter Sample Rate (Hz, Default={OPTIONS['DefaultSampleRate']}):") or OPTIONS[
                     "SampleRate"])
@@ -117,7 +124,7 @@ def main() -> Return:
                 print("Sample Rate invalid. Please try again.")
                 return Return.VALUE_ERROR
         else:
-            _sr = sd.default.samplerate
+            _sr = OPTIONS["SampleRate"]
         _recording = sd.rec(int(_duration * _sr))
         if wait:
             sd.wait()  # Wait for recording to finish.
@@ -154,9 +161,16 @@ def main() -> Return:
             return Return.SUCCESS
         return Return.INDEX_ERROR  # No match found.
 
+    def optimize() -> Return:
+        """Optimizes various window parameters."""
+        print("Please wait while optimizing...")
+        best_params, best_score = optimize_parameters()
+        print("Training Results:", best_params, best_score)
+        return Return.SUCCESS
+
     # Command List
     _commands = dict()
-    for _command in [init, terminate, play, stop, record, append, match]:  # TODO: Add all commands here! SEARCH
+    for _command in [init, terminate, play, stop, record, append, match, optimize]:  # TODO: Add all commands here!
         _commands[_command.__name__] = _command
 
     # Main Loop
@@ -206,21 +220,21 @@ def tracklist_from_directory(path: AnyStr = OPTIONS["DatabasePath"],
         if _filename.endswith(ext):
             print(f"#{len(_tracklist) + 1} = {_filename}...")
             _track = Track(os.path.join(path, _filename))
-            np.save(os.path.join(OPTIONS["CachePath"], "STFTs", f"{_track.title}.npy"), np.abs(_track.stft))
-            np.save(os.path.join(OPTIONS["CachePath"], "CMaps", f"{_track.title}.npy"), _track.constellation_map)
-            np.save(os.path.join(OPTIONS["CachePath"], "Anchors", f"{_track.title}.npy"), _track.anchors)
-            save_as_pickle(os.path.join(OPTIONS["CachePath"], "Hashes", f"{_track.title}.pkl"), _track.hashes)
+            # np.save(os.path.join(OPTIONS["CachePath"], Paths.STFT.name, f"{_track.title}.npy"), np.abs(_track.stft))
+            # np.save(os.path.join(OPTIONS["CachePath"], Paths.CMap.name, f"{_track.title}.npy"), _track.cmap)
+            # np.save(os.path.join(OPTIONS["CachePath"], Paths.Anchor.name, f"{_track.title}.npy"), _track.anchors)
+            # save_as_pickle(os.path.join(OPTIONS["CachePath"], Paths.Hash.name, f"{_track.title}.pkl"), _track.hashes)
             _tracklist.append(_track)
-            # _tracklist.append(_track)
     # _tracklist.append(Track(librosa.ex('choice')))
     return _tracklist
 
 
-print(f"Start! {timestamp()}")
+print(f"Starting! {timestamp()}")
 start = time.time()
+# Training
 # tracklist: TrackList = tracklist_from_directory()
-track: Track = Track("C:/Users/DJoho/Downloads/_Database ACR Shazam/אביגייל רוז - הפרעות - לא טוב לי.wav")
 pickle_path: AnyStr = "C:/Users/DJoho/PycharmProjects/ACR_Project/Cache/Pickles/אביגייל רוז - הפרעות - לא טוב לי.pkl"
+track: Track = Track("C:/Users/DJoho/Downloads/_Database ACR Shazam/אביגייל רוז - הפרעות - לא טוב לי.wav")
 load: bool = True
 titles: List[AnyStr] = get_titles_from_cache() if load else get_titles()
 print(f"Done! {timedelta(seconds=(time.time() - start))} = {len(titles)} songs loaded!")
