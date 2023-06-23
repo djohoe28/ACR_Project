@@ -20,7 +20,7 @@ def is_google_colab() -> Boolean:
 # Global Parameters
 OPTIONS: Dict[AnyStr, Any] = {
     "DEBUG": False,
-    "COLAB": False,
+    "COLAB": is_google_colab(),
     "Synchronous": True,
     "TimestampFormat": "%Y-%m-%d %H:%M:%S",
     # Database
