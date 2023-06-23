@@ -73,9 +73,10 @@ class Cacher(object):
         self.get_o: Dict[Integer, Integer] = {self.param_grid['offset'][_i]: _i for _i in range(self.shape[3])}
         self.tracks: Optional[Dict[AnyStr, Track]] = None if self.is_cached else {}
         self.anchors: Optional[Dict[AnyStr, np.ndarray]] = None if self.is_cached else {}
+        self.cache: np.ndarray = np.zeros(self.shape)
         if not self.is_cached:
             self.generate_cache()
-        self.cache: np.ndarray = np.load(filepath)  # NOTE: Loads file even if is_cached to validate reproducibility.
+        self.cache = np.load(filepath)  # NOTE: Loads file even if is_cached to validate reproducibility.
 
     def generate_cache(self: class_name) -> None:
         """Caches amount of hashes generated from parameters in param_grid."""
