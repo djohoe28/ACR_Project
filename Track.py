@@ -110,7 +110,7 @@ class Track(object):
     @property
     def y(self) -> Optional[np.ndarray]:
         """Audio time series of self (y values over samples)."""
-        if self.is_verbose or True:  # TODO: PyCharm tends to crash here.
+        if self.is_verbose:  # TODO: PyCharm tends to crash here.
             print("y", self._y is None, self.title)
         if self._y is None and not self.is_compressed:
             self._y, self._sr = librosa.load(self.path, sr=OPTIONS["SampleRate"])
@@ -191,7 +191,7 @@ class Track(object):
             print("_evaluate_stft", self.title)
         win_length = win_length if win_length is not None else n_fft
         hop_length = hop_length if hop_length is not None else win_length // 4
-        _stft = librosa.stft(self.y, sr=self.sr, n_fft=n_fft, win_length=win_length, hop_length=hop_length)
+        _stft = librosa.stft(self.y, n_fft=n_fft, win_length=win_length, hop_length=hop_length)
         return _stft
 
     def _evaluate_constellation(self: class_name,

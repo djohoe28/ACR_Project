@@ -219,9 +219,12 @@ cached: bool = OPTIONS["CACHED"]
 titles: List[AnyStr] = get_titles(cached) if cached else cache_database_by_track(True)
 titles = get_titles()
 hashes = {}
-for title in titles:
-    print(f"Hashing {title}...")
-    _hashes = hashes_from_cached_constellation(title)
+for filename in os.listdir(OPTIONS["DatabasePath"]):
+    if not filename.endswith(OPTIONS["RecordingExtension"]):
+        continue
+    print(f"Hashing {filename}...")
+    track = Track(os.path.join(f'{OPTIONS["DatabasePath"]}/{filename}'))
+    _hashes = track.hashes  # hashes_from_cached_constellation(title)
     for key in _hashes:
         if key not in hashes:
             hashes[key] = {}
