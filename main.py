@@ -62,8 +62,9 @@ def main() -> Return:
     def init() -> Return:
         """Initialize a demo Track list."""
         nonlocal database
-        _input = input("Would you like to read from the Database?: ")
+        _input = input("Would you like to import a directory into the database? [y]es / [n]o: ")
         if _input.lower() in ["true", "t", "yes", "y"]:
+            OPTIONS["DatabasePath"] = input("Please specify the path to the directory of songs: ")
             cache_database_by_track()
         else:
             _input = input("Would you like to read from the Cache?: ")
@@ -209,12 +210,14 @@ if __name__ == "__main__":
 #  IN PROGRESS: Play with peak_find parameters to affect Constellation.
 #  NOTE: Mode5, MDA256, CRC checksum
 #  NOTE: matlab find, SIMD, parameter sweep, scipy research
+# NOTE: This is the code I was working on to properly set up the database. 
 print(f"Starting! {timestamp()}")
 pickle_path: AnyStr = "C:/Users/DJoho/PycharmProjects/ACR_Project/Cache/Pickles/אביגייל רוז - הפרעות - לא טוב לי.pkl"
 track: Track = Track("C:/Users/DJoho/Downloads/_Database ACR Shazam/אביגייל רוז - הפרעות - לא טוב לי.wav")
 start: Float = time.time()
 cached: bool = OPTIONS["CACHED"]
 titles: List[AnyStr] = get_titles(cached) if cached else cache_database_by_track(True)
+titles = get_titles()
 hashes = {}
 for title in titles:
     print(f"Hashing {title}...")
