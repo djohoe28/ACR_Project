@@ -83,7 +83,7 @@ class Track(object):
         """Private Lazy Evaluation of Constellation of self"""
         self._asterism: Optional[np.ndarray] = None
         """Private Lazy Evaluation of Asterism of self."""
-        self._hashes: Optional[Hashes] = None
+        self._hashes: Optional[HashSet] = None
         """Private Lazy Evaluation of Hashes of self. { Hash -> {title -> offset} }"""
         # Load Metadata (if available)
         if sf.check_format(self.path):
@@ -171,7 +171,7 @@ class Track(object):
         return self._asterism
 
     @property
-    def hashes(self) -> Hashes:
+    def hashes(self) -> HashSet:
         """Hashes of self. { Hash -> { Title -> Offset } }"""
         if self.is_verbose:
             print("Hashes", self._hashes is None, self.title)
@@ -236,7 +236,7 @@ class Track(object):
     def _evaluate_hashes(self: class_name,
                          target_width: Integer = OPTIONS["TargetZoneWidth"],
                          target_height: Integer = OPTIONS["TargetZoneHeight"],
-                         time_offset: Integer = OPTIONS["TargetZoneTimeOffset"]) -> Hashes:
+                         time_offset: Integer = OPTIONS["TargetZoneTimeOffset"]) -> HashSet:
         """
         Get a Hash Set dictionary of self's Constellation hashes.
 

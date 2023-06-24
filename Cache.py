@@ -89,7 +89,7 @@ def asterism_from_cached_constellation(title: AnyStr) -> np.ndarray:
 
 def hashes_from_cached_constellation(title: AnyStr, target_width: Integer = OPTIONS["TargetZoneWidth"],
                                      target_height: Integer = OPTIONS["TargetZoneHeight"],
-                                     time_offset: Integer = OPTIONS["TargetZoneTimeOffset"]) -> Hashes:
+                                     time_offset: Integer = OPTIONS["TargetZoneTimeOffset"]) -> HashSet:
     """
     Get a Hash Set dictionary of self's Constellation hashes.
 

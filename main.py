@@ -56,16 +56,11 @@ def main() -> Return:
     # Variables
     print("Hello! Welcome to the ACR Project!")
     running = True
-    database: TrackList = TrackList()
-    try:
-        database.hashes = load_from_pickle(os.path.join(OPTIONS["CachePath"], OPTIONS["CacheFile"]))
-    except FileNotFoundError:
-        print("No cache found, proceeding with empty database...")
 
     # Commands
     def load() -> Return:
         """Initialize a demo Track list."""
-        nonlocal database
+        # nonlocal database
         _input = input("Would you like to import a song directory into the database? [y]es / [n]o: ")
         if _input.lower() in ["true", "t", "yes", "y"]:
             OPTIONS["DatabasePath"] = input("Please specify the path to the directory of songs: ")
@@ -74,11 +69,8 @@ def main() -> Return:
         else:
             _input = input("Please specify the path to the cache file you want added to the database: ")
             try:
-                _temp = load_from_pickle(_input)
-                for k in _temp:
-                    if k not in database.hashes:
-                        database.hashes[k] = {}
-                    database.hashes[k] += _temp[k]
+                _temp: HashSet = load_from_pickle(_input)
+                database.append_hashes(_temp)
                 print("Cache loaded successfully!")
             except FileNotFoundError:
                 print("File not found, please try again later.")
@@ -88,40 +80,40 @@ def main() -> Return:
     def terminate() -> Return:
         """Terminate the program."""
         nonlocal running
-        stop()
+        # stop()
         running = False
         return Return.SUCCESS
 
-    def play() -> Return:
-        """Play a Track by ID from user."""
-        print("Available Tracks:")
-        for _i in range(len(database)):
-            print(f"{_i}: {database[str(_i)].title}")
-        _track_title = input("Please enter Track title:")
-        try:
-            if _track_title == "":
-                print("Cancelling...")
-                return Return.CANCEL
-            _track: Track = database[_track_title]
-            _track.play()
-            return Return.SUCCESS
-        except ValueError:
-            print("Not a valid Track title. Please try again.")
-            return Return.VALUE_ERROR
-        # except IndexError:
-        #     print("Track ID out of range. Please try again.")
-        #     return Return.INDEX_ERROR
-        except sd.PortAudioError:
-            print("Error playing Track. Please try again.")
-            return Return.AUDIO_ERROR
-        pass
-
-    def stop() -> Return:
-        """Stop playing all currently playing audios on sound-device."""
-        if OPTIONS["COLAB"]:
-            return Return.COLAB_ERROR
-        sd.stop()
-        return Return.SUCCESS
+    # def play() -> Return:
+    #     """Play a Track by ID from user."""
+    #     print("Available Tracks:")
+    #     for _i in range(len(database)):
+    #         print(f"{_i}: {database[str(_i)].title}")
+    #     _track_title = input("Please enter Track title:")
+    #     try:
+    #         if _track_title == "":
+    #             print("Cancelling...")
+    #             return Return.CANCEL
+    #         _track: Track = database[_track_title]
+    #         _track.play()
+    #         return Return.SUCCESS
+    #     except ValueError:
+    #         print("Not a valid Track title. Please try again.")
+    #         return Return.VALUE_ERROR
+    #     # except IndexError:
+    #     #     print("Track ID out of range. Please try again.")
+    #     #     return Return.INDEX_ERROR
+    #     except sd.PortAudioError:
+    #         print("Error playing Track. Please try again.")
+    #         return Return.AUDIO_ERROR
+    #     pass
+    #
+    # def stop() -> Return:
+    #     """Stop playing all currently playing audios on sound-device."""
+    #     if OPTIONS["COLAB"]:
+    #         return Return.COLAB_ERROR
+    #     sd.stop()
+    #     return Return.SUCCESS
 
     def record(wait: bool = True, save: bool = True, add: bool = False,
                ext: AnyStr = OPTIONS["RecordingExtension"]) -> Return:
@@ -190,7 +182,7 @@ def main() -> Return:
 
     # Command List
     _commands = dict()
-    for _command in [load, terminate, play, stop, record, append, match, optimize]:  # TODO: Add all commands here!
+    for _command in [load, terminate, record, append, match, optimize]:  # play, stop TODO: Add all commands here!
         _commands[_command.__name__] = _command
 
     # Main Loop
@@ -206,9 +198,6 @@ def main() -> Return:
     return Return.SUCCESS
 
 
-if __name__ == "__main__":
-    pass  # main()
-
 # TODO:
 #  COMPLETE: Change Sample Rate -> Higher SR = shorter higher pitch
 #  COMPLETE: Experiment with cross-referencing librosa, soundfile, python-sounddevice -> All are based on NumPy.
@@ -223,29 +212,35 @@ if __name__ == "__main__":
 #  IN PROGRESS: Play with peak_find parameters to affect Constellation.
 #  NOTE: Mode5, MDA256, CRC checksum
 #  NOTE: matlab find, SIMD, parameter sweep, scipy research
-# NOTE: This is the code I was working on to properly set up the database.
-if not OPTIONS["DEBUG"]:
-    main()
-else:
-    print(f"Starting! {timestamp()}")
-    track: Track = Track(OPTIONS["FullFile"])
-    start: Float = time.time()
-    cached: bool = OPTIONS["CACHED"]
-    titles: List[AnyStr] = get_titles(cached) if cached else cache_database_by_track(OPTIONS["DatabasePath"], True)
-    titles = get_titles()
-    hashes = {}
-    for filename in os.listdir(OPTIONS["DatabasePath"]):
-        if not filename.endswith(OPTIONS["RecordingExtension"]):
-            continue
-        print(f"Hashing {filename}...")
-        track = Track(os.path.join(f'{OPTIONS["DatabasePath"]}/{filename}'))
-        _hashes = track.hashes  # hashes_from_cached_constellation(title)
-        for key in _hashes:
-            if key not in hashes:
-                hashes[key] = {}
-            for _title in _hashes[key]:
-                hashes[key][_title] = _hashes[key][_title]
-    save_as_pickle("Hashes.pkl", hashes)
-    # tracklist: TrackList = tracklist_from_directory()
-    runtime: Float = time.time() - start
-    print(f"Done! {timedelta(seconds=runtime)} = {len(titles)} songs loaded!")
+
+if __name__ == "__main__":
+    database: HashDatabase = HashDatabase()  # Extracted for debugging purposes
+    if not OPTIONS["DEBUG"]:
+        try:
+            database = load_from_pickle(os.path.join(OPTIONS["CachePath"], OPTIONS["CacheFile"]))
+        except FileNotFoundError:
+            print("No cache found, proceeding with empty database...")
+        main()
+    else:
+        print(f"Starting! {timestamp()}")
+        track: Track = Track(OPTIONS["FullFile"])
+        start: Float = time.time()
+        cached: bool = OPTIONS["CACHED"]
+        titles: List[AnyStr] = get_titles(cached) if cached else cache_database_by_track(OPTIONS["DatabasePath"], True)
+        titles = get_titles()
+        hashes = {}
+        for filename in os.listdir(OPTIONS["DatabasePath"]):
+            if not filename.endswith(OPTIONS["RecordingExtension"]):
+                continue
+            print(f"Hashing {filename}...")
+            track = Track(os.path.join(f'{OPTIONS["DatabasePath"]}/{filename}'))
+            _hashes = track.hashes  # hashes_from_cached_constellation(title)
+            for key in _hashes:
+                if key not in hashes:
+                    hashes[key] = {}
+                for _title in _hashes[key]:
+                    hashes[key][_title] = _hashes[key][_title]
+        save_as_pickle("Hashes.pkl", hashes)
+        # tracklist: TrackList = tracklist_from_directory()
+        runtime: Float = time.time() - start
+        print(f"Done! {timedelta(seconds=runtime)} = {len(titles)} songs loaded!")

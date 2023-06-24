@@ -9,7 +9,7 @@ import numpy as np
 Integer = int
 Float = float
 Boolean = bool
-Hashes = Dict[AnyStr, Dict[AnyStr, Integer]]
+HashSet = Dict[AnyStr, Dict[AnyStr, Integer]]
 
 
 def is_google_colab() -> Boolean:
@@ -24,7 +24,7 @@ OPTIONS: Dict[AnyStr, Any] = {
     "COLAB": is_google_colab(),
     "Synchronous": True,
     "TimestampFormat": "%Y-%m-%d %H:%M:%S",
-    "CacheFile": "hash.pkl",
+    "CacheFile": "database.pkl",
     "SampleFile": "SAMPLE.wav",
     "FullFile": "FULL.wav",
     # Database
