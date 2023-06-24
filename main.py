@@ -57,19 +57,29 @@ def main() -> Return:
     print("Hello! Welcome to the ACR Project!")
     running = True
     database: TrackList = TrackList()
+    database.hashes = np.load("hash.npy")  # TODO: Loads hashes to memory - super important! Check if works!!
 
     # Commands
-    def init() -> Return:
+    def load() -> Return:
         """Initialize a demo Track list."""
         nonlocal database
-        _input = input("Would you like to import a directory into the database? [y]es / [n]o: ")
+        _input = input("Would you like to import a song directory into the database? [y]es / [n]o: ")
         if _input.lower() in ["true", "t", "yes", "y"]:
             OPTIONS["DatabasePath"] = input("Please specify the path to the directory of songs: ")
             cache_database_by_track()
+            print("Database loaded successfully!")
         else:
-            _input = input("Would you like to read from the Cache?: ")
-
-        database = TrackList()  # TODO: Initialize TrackList (read from file)
+            _input = input("Please specify the path to the cache file you want added to the database: ")
+            try:
+                _temp = np.load(_input)
+                for k in _temp:
+                    if k not in hashes:
+                        hashes[k] = {}
+                    hashes[k] += _temp[k]
+                print("Cache loaded successfully!")
+            except FileNotFoundError:
+                print("File not found, please try again later.")
+                return Return.FILES_ERROR
         return Return.SUCCESS
 
     def terminate() -> Return:
@@ -177,7 +187,7 @@ def main() -> Return:
 
     # Command List
     _commands = dict()
-    for _command in [init, terminate, play, stop, record, append, match, optimize]:  # TODO: Add all commands here!
+    for _command in [load, terminate, play, stop, record, append, match, optimize]:  # TODO: Add all commands here!
         _commands[_command.__name__] = _command
 
     # Main Loop
@@ -194,7 +204,7 @@ def main() -> Return:
 
 
 if __name__ == "__main__":
-    pass  # main()
+    main()
 
 # TODO:
 #  COMPLETE: Change Sample Rate -> Higher SR = shorter higher pitch

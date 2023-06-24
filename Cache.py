@@ -141,7 +141,7 @@ def hashes_from_cached_constellation(title: AnyStr, target_width: Integer = OPTI
     return _hashes
 
 
-def get_titles(cached: Boolean = False) -> List[AnyStr]:
+def get_titles(path: AnyStr = OPTIONS["DatabasePath"], cached: Boolean = False) -> List[AnyStr]:
     """
     Load a list of titles from cache if cached: else load from database.
 
@@ -152,18 +152,17 @@ def get_titles(cached: Boolean = False) -> List[AnyStr]:
     """
     _titles: List[AnyStr] = []
     if cached:
-        # Get titles from pickled Tracks
+        # Get titles from cached/pickled Tracks
         for _filename in os.listdir(os.path.join(OPTIONS["CachePath"], Properties.Pickle.name)):
             if _filename.endswith('.pkl'):
                 _titles.append(os.path.basename(os.path.splitext(
                     os.path.join(OPTIONS["CachePath"], Properties.Pickle.name, _filename))[0]))
     else:
         # Get titles from sound files
-        _db_path: AnyStr = OPTIONS["DatabasePath"]
         _ext: (Union[AnyStr, Tuple[AnyStr, ...]]) = OPTIONS["RecordingExtension"]
-        for _filename in os.listdir(_db_path):
+        for _filename in os.listdir(path):
             if _filename.endswith(_ext):
-                _title = os.path.basename(os.path.splitext(os.path.join(_db_path, _filename))[0])
+                _title = os.path.basename(os.path.splitext(os.path.join(path, _filename))[0])
                 _titles.append(_title)
     return _titles
 
@@ -187,7 +186,8 @@ def make_directories() -> None:
             os.mkdir(_figure_path_folder)
 
 
-def cache_database_by_track(plot_figures: Boolean = False, verbose: Boolean = True) -> List[AnyStr]:
+def cache_database_by_track(path: AnyStr = OPTIONS["DatabasePath"],
+                            plot_figures: Boolean = False, verbose: Boolean = True) -> List[AnyStr]:
     """
     Generate cache from files available in database.
 
@@ -205,7 +205,7 @@ def cache_database_by_track(plot_figures: Boolean = False, verbose: Boolean = Tr
         _title: AnyStr = _titles[_i]
         print(f'{_i + 1} / {len(_titles)} = {_title}')
         # NOTE: Pickle *sometimes* runs the _evaluate functions if not track.is_compressed!
-        _track: Track = Track(os.path.join(OPTIONS["DatabasePath"], f'{_title}.{OPTIONS["RecordingExtension"]}'))
+        _track: Track = Track(os.path.join(path, f'{_title}.{OPTIONS["RecordingExtension"]}'))
         _track.cache_property(Properties.Pickle, plot_figures)
         _track.cache_property(Properties.Y, plot_figures)
         _track.cache_property(Properties.STFT, plot_figures)
