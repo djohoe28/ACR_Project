@@ -1,3 +1,5 @@
+import soundfile
+
 from Utilities import *
 
 from typing import Optional
@@ -86,12 +88,14 @@ class Track(object):
         self._hashes: Optional[HashSet] = None
         """Private Lazy Evaluation of Hashes of self. { Hash -> {title -> offset} }"""
         # Load Metadata (if available)
-        if sf.check_format(self.path):
+        try:
             _metadata = sf.info(self.path)
             if hasattr(_metadata, "title"):
                 self.title = _metadata.title
             if hasattr(_metadata, "duration"):  # Guaranteed by SoundFileInfo class.
                 self._duration = _metadata.duration  # NOTE: Overwrites (len(y)/sr), just in case.
+        except soundfile.LibsndfileError:
+            print("Error opening metadata...")
 
     def __str__(self: class_name):
         return f"Track: {self.title}"

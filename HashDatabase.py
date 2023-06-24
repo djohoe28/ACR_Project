@@ -40,18 +40,27 @@ class HashDatabase(HashSet):
         """
         _best_match: Optional[AnyStr] = None
         _best_score: Float = 0
+        _track_titles = {}
         for _hash_key in sample:
-            if _hash_key in self.hashes:
-                _track_info = self.hashes[_hash_key]
+            if _hash_key in self:
+                _track_info = self[_hash_key]
                 for _track_title, _time_offset in _track_info.items():
-                    _score = self.calculate_similarity_score(_time_offset, sample[_hash_key][_track_title])
-                    if _score > _best_score:
-                        _best_match = _track_title
-                        _best_score = _score
+                    if _track_title not in _track_titles:
+                        _track_titles[_track_title] = {}
+                    for _sample_title in sample[_hash_key]:
+                        _offset = self.find_delta_offset(_time_offset, sample[_hash_key][_sample_title])
+                        if _offset not in _track_titles[_track_title]:
+                            _track_titles[_track_title][_offset] = 0
+                        _track_titles[_track_title][_offset] += 1
+        for _track_title in _track_titles:
+            for _offset in _track_titles[_track_title]:
+                if _track_titles[_track_title][_offset] > _best_score:
+                    _best_score = _track_titles[_track_title][_offset]
+                    _best_match = _track_title
         return _best_match
 
     @staticmethod
-    def calculate_similarity_score(track_offset: int, sample_offset: int) -> int:
+    def find_delta_offset(track_offset: int, sample_offset: int) -> int:
         """
         Calculates the similarity score between two time offsets.
 
@@ -65,7 +74,7 @@ class HashDatabase(HashSet):
         # TODO: Implement the similarity score calculation logic
         # You can use the methodology described in the Shazam article (Section 2.3)
         # Calculate a score based on the time offset difference
-        _score = abs(track_offset - sample_offset)
+        _score = int(abs(track_offset - sample_offset))
 
         return _score
 

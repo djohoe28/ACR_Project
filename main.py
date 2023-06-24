@@ -165,13 +165,13 @@ def main() -> Return:
     def match() -> Return:
         """Search for a Track using a Sample soundfile."""
         _path = input("Please enter the filepath of the Sample you would like to search with (.wav, 44100Hz SR): ")
-        if sf.check_format(_path):
-            _track = Track(_path)
-            _hashes = _track.hashes
-            _title = database.match_from_sample(sample=_hashes)
-            print(f"Match Found! {_title}")
-            return Return.SUCCESS
-        return Return.INDEX_ERROR  # No match found.
+        # if sf.check_format(_path):
+        _track = Track(_path)
+        _hashes = _track.hashes
+        _title = database.match_from_sample(sample=_hashes)
+        print(f"Match Found! {_title}")
+        return Return.SUCCESS
+        # return Return.INDEX_ERROR  # No match found.
 
     def optimize() -> Return:
         """Optimizes various window parameters."""

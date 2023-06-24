@@ -111,10 +111,9 @@ def hashes_from_cached_constellation(title: AnyStr, target_width: Integer = OPTI
     # Load Metadata (if available)
     _path = os.path.join(OPTIONS["DatabasePath"], f'{title}.wav')
     _duration = 0
-    if sf.check_format(_path):
-        _metadata = sf.info(_path)
-        if hasattr(_metadata, "duration"):  # Guaranteed by SoundFileInfo class.
-            _duration = _metadata.duration  # NOTE: Overwrites (len(y)/sr), just in case.
+    _metadata = sf.info(_path)
+    if hasattr(_metadata, "duration"):  # Guaranteed by SoundFileInfo class.
+        _duration = _metadata.duration  # NOTE: Overwrites (len(y)/sr), just in case.
     if _duration == 0:
         np.save("ERROR.npy", np.array([-1]))
     win_length = OPTIONS["WindowLength"] if OPTIONS["WindowLength"] is not None else OPTIONS["NFFT"]
