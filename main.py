@@ -57,7 +57,8 @@ def main() -> Return:
     print("Hello! Welcome to the ACR Project!")
     running = True
     database: TrackList = TrackList()
-    database.hashes = load_from_pickle("hash.npy")  # TODO: Loads hashes to memory - super important! Check if works!!
+    database.hashes = np.load("hash.npy",
+                              allow_pickle=True)  # TODO: Loads hashes to memory - super important! Check if works!!
 
     # Commands
     def load() -> Return:
@@ -121,7 +122,8 @@ def main() -> Return:
         sd.stop()
         return Return.SUCCESS
 
-    def record(wait: bool = True, save: bool = True, add: bool = False, ext: AnyStr = OPTIONS["FileType"]) -> Return:
+    def record(wait: bool = True, save: bool = True, add: bool = False,
+               ext: AnyStr = OPTIONS["RecordingExtension"]) -> Return:
         """Record from sound-device."""
         if OPTIONS["COLAB"]:
             print("This functionality is unavailable for Google Colab. Please use a sample file, instead.")
