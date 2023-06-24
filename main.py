@@ -220,7 +220,8 @@ if __name__ == "__main__":
 #  IN PROGRESS: Play with peak_find parameters to affect Constellation.
 #  NOTE: Mode5, MDA256, CRC checksum
 #  NOTE: matlab find, SIMD, parameter sweep, scipy research
-# NOTE: This is the code I was working on to properly set up the database. 
+# NOTE: This is the code I was working on to properly set up the database.
+"""
 print(f"Starting! {timestamp()}")
 pickle_path: AnyStr = "C:/Users/DJoho/PycharmProjects/ACR_Project/Cache/Pickles/אביגייל רוז - הפרעות - לא טוב לי.pkl"
 track: Track = Track("C:/Users/DJoho/Downloads/_Database ACR Shazam/אביגייל רוז - הפרעות - לא טוב לי.wav")
@@ -244,3 +245,4 @@ save_as_pickle("Hashes.pkl", hashes)
 # tracklist: TrackList = tracklist_from_directory()
 runtime: Float = time.time() - start
 print(f"Done! {timedelta(seconds=runtime)} = {len(titles)} songs loaded!")
+"""
