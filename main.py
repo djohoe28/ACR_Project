@@ -56,12 +56,18 @@ def main() -> Return:
     # Variables
     print("Hello! Welcome to the ACR Project!")
     running = True
-    database = TrackList()
+    database: TrackList = TrackList()
 
     # Commands
     def init() -> Return:
         """Initialize a demo Track list."""
         nonlocal database
+        _input = input("Would you like to read from the Database?: ")
+        if _input.lower() in ["true", "t", "yes", "y"]:
+            cache_database_by_track()
+        else:
+            _input = input("Would you like to read from the Cache?: ")
+
         database = TrackList()  # TODO: Initialize TrackList (read from file)
         return Return.SUCCESS
 
@@ -134,7 +140,7 @@ def main() -> Return:
         if save:
             if not os.path.exists(OPTIONS["RecordingPath"]):
                 # Create "Recordings" folder if one does not exist. (SoundFile can't mkdir)
-                os.mkdir(OPTIONS["RecordingPath"])
+                os.mkdir(OPTIONS["RecordingPath"], mode=OPTIONS["MakeDirMode"])
             sf.write(f"{_track.title}.{ext}", _track.y, _track.sr)  # Save recording to file.
         # TODO: Soundfile takes a while to save the recording - is it possible to block Python in the meantime?
         if add:
@@ -156,7 +162,7 @@ def main() -> Return:
         if sf.check_format(_path):
             _track = Track(_path)
             _hashes = _track.hashes
-            _title = database.get_track_by_sample(sample=_hashes)
+            _title = database.match_from_sample(sample=_hashes)
             print(f"Match Found! {_title}")
             return Return.SUCCESS
         return Return.INDEX_ERROR  # No match found.
@@ -189,7 +195,6 @@ def main() -> Return:
 if __name__ == "__main__":
     pass  # main()
 
-
 # TODO:
 #  COMPLETE: Change Sample Rate -> Higher SR = shorter higher pitch
 #  COMPLETE: Experiment with cross-referencing librosa, soundfile, python-sounddevice -> All are based on NumPy.
@@ -201,40 +206,25 @@ if __name__ == "__main__":
 #  COMPLETE: Options struct
 #  COMPLETE: Show patch as window (8x8, 3x3, ...). Use np.max. Control target area / k parameters. (5 sec, 1024 bins)
 #  COMPLETE: Window - 140ms ~ 500ms, ~10 in range, histogram points in window, threshold,
-#  IN PROGRESS: Play with peak_find parameters to affect Constellation Map.
+#  IN PROGRESS: Play with peak_find parameters to affect Constellation.
 #  NOTE: Mode5, MDA256, CRC checksum
 #  NOTE: matlab find, SIMD, parameter sweep, scipy research
-
-
-def tracklist_from_directory(path: AnyStr = OPTIONS["DatabasePath"],
-                             ext: (Union[AnyStr, Tuple[AnyStr, ...]]) = OPTIONS["RecordingExtension"]):
-    """
-    # TODO:
-
-    :param path:
-    :param ext:
-    :return:
-    """
-    _tracklist = list()  # TrackList()
-    for _filename in os.listdir(path):
-        if _filename.endswith(ext):
-            print(f"#{len(_tracklist) + 1} = {_filename}...")
-            _track = Track(os.path.join(path, _filename))
-            # np.save(os.path.join(OPTIONS["CachePath"], Paths.STFT.name, f"{_track.title}.npy"), np.abs(_track.stft))
-            # np.save(os.path.join(OPTIONS["CachePath"], Paths.CMap.name, f"{_track.title}.npy"), _track.cmap)
-            # np.save(os.path.join(OPTIONS["CachePath"], Paths.Anchor.name, f"{_track.title}.npy"), _track.anchors)
-            # save_as_pickle(os.path.join(OPTIONS["CachePath"], Paths.Hash.name, f"{_track.title}.pkl"), _track.hashes)
-            _tracklist.append(_track)
-    # _tracklist.append(Track(librosa.ex('choice')))
-    return _tracklist
-
-
 print(f"Starting! {timestamp()}")
-start = time.time()
-# Training
-# tracklist: TrackList = tracklist_from_directory()
 pickle_path: AnyStr = "C:/Users/DJoho/PycharmProjects/ACR_Project/Cache/Pickles/אביגייל רוז - הפרעות - לא טוב לי.pkl"
 track: Track = Track("C:/Users/DJoho/Downloads/_Database ACR Shazam/אביגייל רוז - הפרעות - לא טוב לי.wav")
-load: bool = True
-titles: List[AnyStr] = get_titles_from_cache() if load else get_titles()
-print(f"Done! {timedelta(seconds=(time.time() - start))} = {len(titles)} songs loaded!")
+start: Float = time.time()
+cached: bool = OPTIONS["CACHED"]
+titles: List[AnyStr] = get_titles(cached) if cached else cache_database_by_track(True)
+hashes = {}
+for title in titles:
+    print(f"Hashing {title}...")
+    _hashes = hashes_from_cached_constellation(title)
+    for key in _hashes:
+        if key not in hashes:
+            hashes[key] = {}
+        for _title in _hashes[key]:
+            hashes[key][_title] = _hashes[key][_title]
+save_as_pickle("Hashes.pkl", hashes)
+# tracklist: TrackList = tracklist_from_directory()
+runtime: Float = time.time() - start
+print(f"Done! {timedelta(seconds=runtime)} = {len(titles)} songs loaded!")

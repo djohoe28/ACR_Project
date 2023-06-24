@@ -34,7 +34,7 @@ class Track(object):
     :ivar is_verbose: Prints additional data.
     :type is_verbose: Boolean
     :ivar _y: Audio time series of self (y values over samples). (Masked, lazily evaluated)
-    :type _y: np.ndarray
+    :type _y: Optional[np.ndarray]
     :ivar _sr: Sample Rate of self. (Masked by .sr)
     :type _sr: Integer
     :ivar _duration: Duration of self (floating point, in seconds) (Masked, lazily evaluated)
@@ -43,10 +43,10 @@ class Track(object):
     >type _shape: Optional[Tuple]
     :ivar _stft: Short-Time Fourier Transform representation of self. (Masked, lazily evaluated)
     >type _stft: Optional[np.ndarray]
-    :ivar _cmap: Constellation Map of self. (Masked, lazily evaluated)
-    >type _cmap: Optional[np.ndarray]
-    :ivar _anchors: Anchor list of self. (Masked, lazily evaluated)
-    >type _anchors: Optional[np.ndarray]
+    :ivar _constellation: Constellation of self. (Masked, lazily evaluated)
+    >type _constellation: Optional[np.ndarray]
+    :ivar _asterism: Asterism list of self. (Masked, lazily evaluated)
+    >type _asterism: Optional[np.ndarray]
     :ivar _hashes: HashSet of self. (Masked, lazily evaluated)
     >type _hashes: Optional[np.ndarray]
     """
@@ -79,10 +79,10 @@ class Track(object):
         """Shape of self's STFT array (evaluated later). Used in debugging."""
         self._stft: Optional[np.ndarray] = None
         """Private Lazy Evaluation of Short-Time Fourier Transform of self."""
-        self._cmap: Optional[np.ndarray] = None
-        """Private Lazy Evaluation of Constellation Map of self"""
-        self._anchors: Optional[np.ndarray] = None
-        """Private Lazy Evaluation of Anchors of self."""
+        self._constellation: Optional[np.ndarray] = None
+        """Private Lazy Evaluation of Constellation of self"""
+        self._asterism: Optional[np.ndarray] = None
+        """Private Lazy Evaluation of Asterism of self."""
         self._hashes: Optional[Hashes] = None
         """Private Lazy Evaluation of Hashes of self. { Hash -> {title -> offset} }"""
         # Load Metadata (if available)
@@ -108,9 +108,9 @@ class Track(object):
             sd.wait()
 
     @property
-    def y(self) -> np.ndarray:
+    def y(self) -> Optional[np.ndarray]:
         """Audio time series of self (y values over samples)."""
-        if self.is_verbose:
+        if self.is_verbose or True:  # TODO: PyCharm tends to crash here.
             print("y", self._y is None, self.title)
         if self._y is None and not self.is_compressed:
             self._y, self._sr = librosa.load(self.path, sr=OPTIONS["SampleRate"])
@@ -153,22 +153,22 @@ class Track(object):
         return self._shape
 
     @property
-    def cmap(self) -> np.ndarray:
-        """Constellation Map of self."""
+    def constellation(self) -> np.ndarray:
+        """Constellation of self."""
         if self.is_verbose:
-            print("CMap", self._cmap is None, self.title)
-        if self._cmap is None and not self.is_compressed:
-            self._cmap = self._evaluate_constellation_map()
-        return self._cmap
+            print("Constellation", self._constellation is None, self.title)
+        if self._constellation is None and not self.is_compressed:
+            self._constellation = self._evaluate_constellation()
+        return self._constellation
 
     @property
-    def anchors(self) -> np.ndarray:
-        """Anchors of self."""
+    def asterism(self) -> np.ndarray:
+        """Asterism of self."""
         if self.is_verbose:
-            print("Anchors", self._anchors is None, self.title)
-        if self._anchors is None and not self.is_compressed:
-            self._anchors = self._evaluate_anchors()
-        return self._anchors
+            print("Asterism", self._asterism is None, self.title)
+        if self._asterism is None and not self.is_compressed:
+            self._asterism = self._evaluate_asterism()
+        return self._asterism
 
     @property
     def hashes(self) -> Hashes:
@@ -191,12 +191,12 @@ class Track(object):
             print("_evaluate_stft", self.title)
         win_length = win_length if win_length is not None else n_fft
         hop_length = hop_length if hop_length is not None else win_length // 4
-        _stft = librosa.stft(self.y, n_fft=n_fft, win_length=win_length, hop_length=hop_length)
+        _stft = librosa.stft(self.y, sr=self.sr, n_fft=n_fft, win_length=win_length, hop_length=hop_length)
         return _stft
 
-    def _evaluate_constellation_map(self: class_name,
-                                    maxima_width=OPTIONS["MaximaFilterWidth"],
-                                    maxima_height=OPTIONS["MaximaFilterHeight"]) -> np.ndarray:
+    def _evaluate_constellation(self: class_name,
+                                maxima_width=OPTIONS["MaximaFilterWidth"],
+                                maxima_height=OPTIONS["MaximaFilterHeight"]) -> np.ndarray:
         """
         Get a copy of self's STFT where all non-peaks are set to 0.
         Adapted from https://stackoverflow.com/a/3689710
@@ -205,11 +205,11 @@ class Track(object):
         :type maxima_width: int
         :param maxima_height: Height of Target Zone
         :type maxima_height: int
-        :return: Constellation Map of self
+        :return: Constellation of self
         :rtype: np.ndarray
         """
         if self.is_verbose:
-            print("_evaluate_constellation_map()", self.title)
+            print("_evaluate_constellation()", self.title)
         _stft = np.abs(self.stft)
         _size = (maxima_width, maxima_height)
         _structure = np.ones(_size)
@@ -222,23 +222,23 @@ class Track(object):
         # Apply XOR to remove eroded background (i.e: border points) from result
         return _maxima_mask ^ _eroded
 
-    def _evaluate_anchors(self: class_name) -> np.ndarray:
+    def _evaluate_asterism(self: class_name) -> np.ndarray:
         """
-        Get a list of anchors (points) of self's Constellation Map.
+        Get a list of asterism (local maxima) of self's Constellation.
 
-        :return: Anchors of self
+        :return: Asterism of self
         :rtype: np.ndarray
         """
         if self.is_verbose:
-            print("_evaluate_anchors()", self.title)
-        return nonzero_to_array(self.cmap)
+            print("_evaluate_asterism()", self.title)
+        return nonzero_to_array(self.constellation)
 
     def _evaluate_hashes(self: class_name,
                          target_width: Integer = OPTIONS["TargetZoneWidth"],
                          target_height: Integer = OPTIONS["TargetZoneHeight"],
-                         time_offset: Integer = OPTIONS["TargetZoneTimeOffset"]) -> Dict[AnyStr, Dict[AnyStr, int]]:
+                         time_offset: Integer = OPTIONS["TargetZoneTimeOffset"]) -> Hashes:
         """
-        Get a Hash Set dictionary of self's Constellation Map hashes.
+        Get a Hash Set dictionary of self's Constellation hashes.
 
         :param target_width: Width of Target Zone
         :type target_width: Integer
@@ -252,9 +252,9 @@ class Track(object):
         if self.is_verbose:
             print("_evaluate_hashes()", self.title)
         _hashes = {}
-        _anchors = self.anchors
-        _cmap = self.cmap
-        for _anchor in _anchors:
+        _asterism = self.asterism
+        _constellation = self.constellation
+        for _anchor in _asterism:
             # Find Boundaries of Target Zone
             _t_min = _anchor[0] + time_offset  # Left
             _t_max = _t_min + target_width  # Right
@@ -263,10 +263,10 @@ class Track(object):
             # Clip appropriately (do not leave confines of array, nor go backwards in time.)
             _t_min, _t_max = np.clip(a=(_t_min, _t_max), a_min=_anchor[0] + 1, a_max=self.shape[0] - 1)
             _f_min, _f_max = np.clip(a=(_f_min, _f_max), a_min=0, a_max=self.shape[1] - 1)
-            # Create Target Zone from Constellation Map; Where maxima in Boundaries: True, Else: False
+            # Create Target Zone from Constellation; Where maxima in Boundaries: True, Else: False
             _target_zone_bounds = (slice(_t_min, _t_max), slice(_f_min, _f_max))
-            _target_zone = np.zeros_like(_cmap)
-            _target_zone[_target_zone_bounds] = _cmap[_target_zone_bounds]
+            _target_zone = np.zeros_like(_constellation)
+            _target_zone[_target_zone_bounds] = _constellation[_target_zone_bounds]
             _targets = nonzero_to_array(_target_zone)
             # Create Hashes from anchor-target pairs
             for _target in _targets:
@@ -296,10 +296,10 @@ class Track(object):
         ax.label_outer()
         return fig, ax
 
-    def plot_spectrogram(self: class_name,
-                         ax: plt.Axes = None, fig: plt.Figure = None,
-                         xlim: Optional[float] = None,
-                         ylim: Optional[float] = None) -> (plt.Figure, plt.Axes):
+    def plot_stft(self: class_name,
+                  ax: plt.Axes = None, fig: plt.Figure = None,
+                  xlim: Optional[float] = None,
+                  ylim: Optional[float] = None) -> (plt.Figure, plt.Axes):
         """
         Plot a spectrogram of STFT of self.
 
@@ -332,26 +332,26 @@ class Track(object):
         fig.colorbar(_img, ax=ax, format="%+2.0f dB")
         return fig, ax
 
-    def plot_constellation_map(self: class_name,
-                               ax: plt.Axes = None, fig: plt.Figure = None,
-                               xlim: Optional[float] = None,
-                               ylim: Optional[float] = None) -> (plt.Figure, plt.Axes):
+    def plot_constellation(self: class_name,
+                           ax: plt.Axes = None, fig: plt.Figure = None,
+                           xlim: Optional[float] = None,
+                           ylim: Optional[float] = None) -> (plt.Figure, plt.Axes):
         """
-        Plot a spectrogram of Constellation Map of self.
+        Plot a spectrogram of Constellation of self.
 
-        :param ax: Axes on which to plot the Constellation Map.
+        :param ax: Axes on which to plot the Constellation.
         :type ax: plt.Axes
-        :param fig: Figure on which to plot the Constellation Map.
+        :param fig: Figure on which to plot the Constellation.
         :type fig: plt.Figure
         :param xlim: Limits of the X-axis (Time) to plot.
         :type xlim: Optional[float]
         :param ylim: Limits of the Y-axis (Frequency) to plot.
         :type xlim: Optional[float]
-        :return: Figure, Axes on which the Constellation Map was plotted.
+        :return: Figure, Axes on which the Constellation was plotted.
         :rtype: (plt.Figure, plt.Axes)
         """
         if self.is_verbose:
-            print("plot_cmap()", self.title)
+            print("plot_constellation()", self.title)
         # Generate new subplots if not defined.
         if (fig is None) and (ax is not None):
             fig = ax.figure
@@ -363,7 +363,7 @@ class Track(object):
             ax.set_xlim(xlim)
         if ylim is not None:
             ax.set_ylim(ylim)
-        x, y = self.cmap.nonzero()
+        x, y = self.constellation.nonzero()
         ax.scatter(x, y)
         return fig, ax
 
@@ -372,21 +372,21 @@ class Track(object):
                                     xlim: Optional[float] = None,
                                     ylim: Optional[float] = None) -> tuple[plt.Figure, plt.Axes]:
         """
-        Plot the STFT and the Constellation Map of self, side-by-side on the same Figure.
+        Plot the STFT and the Constellation of self, side-by-side on the same Figure.
 
-        :param axs: Axes on which to plot the STFT & Constellation Map.
+        :param axs: Axes on which to plot the STFT & Constellation.
         :type axs: plt.Axes
-        :param fig: Figure on which to plot the STFT & Constellation Map.
+        :param fig: Figure on which to plot the STFT & Constellation.
         :type fig: plt.Figure
         :param xlim: Limits of the X-axis (Time) to plot.
         :type xlim: Optional[float]
         :param ylim: Limits of the Y-axis (Frequency) to plot.
         :type xlim: Optional[float]
-        :return: Figure, Axes on which the STFT  & Constellation Map were plotted.
+        :return: Figure, Axes on which the STFT  & Constellation were plotted.
         :rtype: (plt.Figure, plt.Axes)
         """
         if self.is_verbose:
-            print("plot_stft_cmap", self.title)
+            print("plot_stft_constellation", self.title)
         if (fig is None) and (axs is not None):
             fig = axs.figure
         elif (fig is not None) and (axs is None):
@@ -397,8 +397,8 @@ class Track(object):
             axs.set_xlim(xlim)
         if ylim is not None:
             axs.set_ylim(ylim)
-        fig, axs[0] = self.plot_spectrogram(fig=fig, ax=axs[0])
-        fig, axs[1] = self.plot_constellation_map(fig=fig, ax=axs[1])
+        fig, axs[0] = self.plot_stft(fig=fig, ax=axs[0])
+        fig, axs[1] = self.plot_constellation(fig=fig, ax=axs[1])
         return fig, axs
 
     def get_compressed(self: class_name) -> class_name:
@@ -418,8 +418,8 @@ class Track(object):
         _copy._y = None
         # _copy._sr = None
         _copy._stft = None
-        _copy._cmap = None
-        _copy._anchors = None
+        _copy._constellation = None
+        _copy._asterism = None
         _copy._hashes = None
         return _copy
 
@@ -429,6 +429,30 @@ class Track(object):
         if self.is_verbose:
             print("Decompress", self.is_compressed, self.title)
         self.is_compressed = False
+
+    def cache_property(self: class_name, prop: Properties, plot_figures: Boolean = False,
+                       verbose: Boolean = True) -> None:
+        if verbose:
+            print(f"Caching {prop.name} of {self.title}")
+        if prop == Properties.Pickle:
+            save_as_pickle(os.path.join(OPTIONS["CachePath"], prop.name, f'{self.title}.pkl'), self)
+            return
+        _data: Any = getattr(self, prop.value)
+        if isinstance(_data, np.ndarray):
+            np.save(os.path.join(OPTIONS["CachePath"], prop.name, f'{self.title}.npy'), _data)
+            if plot_figures:
+                _fig: Optional[plt.Figure] = None
+                _axs: Optional[plt.Axes] = None
+                _fig_path: AnyStr = os.path.join(OPTIONS["FigurePath"], prop.name, f'{self.title}.png')
+                if prop == Properties.Y:
+                    _fig, _axs = self.plot_waveform()
+                elif prop == Properties.STFT:
+                    _fig, _axs = self.plot_stft()
+                elif prop == Properties.Constellation:
+                    _fig, _axs = self.plot_constellation()
+                if _fig is not None:
+                    _fig.savefig(_fig_path)
+                    plt.close()
 
 
 def save_as_pickle(path: AnyStr, data) -> None:

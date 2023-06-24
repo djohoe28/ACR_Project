@@ -8,18 +8,19 @@ class TrackList(Dict[AnyStr, Track]):
     def __setitem__(self: class_name, key, value: Track):
         super().__setitem__(key, value)
         if value is Track:
+            print(f"Hash generation START | {value.title}")
             _hashes = value.hashes
+            print(f"Hash generation END | {value.title}")
             for key in _hashes:
                 if key not in self.hashes:
                     self.hashes[key] = {}
                 for _title in _hashes[key]:
                     self.hashes[key][_title] = _hashes[key][_title]
-            # self.Hashes += value.get_hashes()  # TODO: Check that this works
 
     def append(self: class_name, value: Track):
         self.__setitem__(value.title, value)
 
-    def get_track_by_sample(self: class_name, sample: Hashes) -> Optional[AnyStr]:
+    def match_from_sample(self: class_name, sample: Hashes) -> Optional[AnyStr]:
         """
         Returns the Track from self that most closely matches the given sample.
 
@@ -28,8 +29,8 @@ class TrackList(Dict[AnyStr, Track]):
         :return: Title of matched Track, if found.
         :rtype Optional[AnyStr]:
         """
-        _best_match = None
-        _best_score = 0
+        _best_match: Optional[AnyStr] = None
+        _best_score: Float = 0
         for _hash_key in sample:
             if _hash_key in self.hashes:
                 _track_info = self.hashes[_hash_key]
@@ -41,20 +42,40 @@ class TrackList(Dict[AnyStr, Track]):
         return _best_match
 
     @staticmethod
-    def calculate_similarity_score(time_offset1: int, time_offset2: int) -> int:
+    def calculate_similarity_score(track_offset: int, sample_offset: int) -> int:
         """
         Calculates the similarity score between two time offsets.
 
-        :param time_offset1: Time offset of the first anchor.
-        :type time_offset1: int
-        :param time_offset2: Time offset of the second anchor.
-        :type time_offset2: int
+        :param track_offset: Time offset of the track's anchor.
+        :type track_offset: int
+        :param sample_offset: Time offset of the sample's anchor.
+        :type sample_offset: int
         :return: Similarity score.
         :rtype: int
         """
         # TODO: Implement the similarity score calculation logic
         # You can use the methodology described in the Shazam article (Section 2.3)
         # Calculate a score based on the time offset difference
-        _score = abs(time_offset1 - time_offset2)
+        _score = abs(track_offset - sample_offset)
 
         return _score
+
+
+def tracklist_from_database(path: AnyStr = OPTIONS["DatabasePath"],
+                            ext: (Union[AnyStr, Tuple[AnyStr, ...]]) = OPTIONS["RecordingExtension"]) -> TrackList:
+    """
+    Load all files in the database directory into a new TrackList.
+
+    :param path: Path to directory
+    :param ext: Supported file extension(s)
+    :return: Generated TrackList
+    :rtype: TrackList
+    """
+    _tracklist = TrackList()
+    for _filename in os.listdir(path):
+        if _filename.endswith(ext):
+            print(f"#{len(_tracklist) + 1} = {_filename}...")
+            _track = Track(os.path.join(path, _filename))
+            _tracklist.append(_track)
+    # _tracklist.append(Track(librosa.ex('choice')))
+    return _tracklist

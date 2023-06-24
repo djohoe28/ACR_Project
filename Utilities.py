@@ -20,12 +20,15 @@ def is_google_colab() -> Boolean:
 # Global Parameters
 OPTIONS: Dict[AnyStr, Any] = {
     "DEBUG": False,
+    "CACHED": True,
     "COLAB": is_google_colab(),
     "Synchronous": True,
     "TimestampFormat": "%Y-%m-%d %H:%M:%S",
     # Database
+    "MakeDirMode": 0o666,
     "DatabasePath": "C:/Users/DJoho/Downloads/_Database ACR Shazam",
     "CachePath": "Cache",
+    "FigurePath": "Figures",
     # Recording Properties
     "RecordingPath": "Recordings",  # Path for Recordings
     "RecordingExtension": "wav",  # File Extension for Recordings
@@ -34,19 +37,22 @@ OPTIONS: Dict[AnyStr, Any] = {
     "Channels": 2,  # Channels
     # Training Properties
     "ParameterSamples": 16,
+    "MaximaMinSide": 36,
+    "MaximaMaxSide": 256,
+    "MaximaMaxPerimeter": 256,
     "AverageHashCount": 2500,
     "CacheFilename": "cacher.npy",
     # Short-Time Fourier Transform (STFT) Parameters
     "NFFT": 2048,  # Number of FFTs (Fast Fourier Transforms)
     "HopLength": None,  # Hop Length - how many units should the STFT window move.
     "WindowLength": None,  # Window Length - what size is the STFT window.
-    # Constellation Map - Maxima Filter Hyperparameters
-    "MaximaFilterWidth": 220501,  # Width of "window" used for finding maxima.
-    "MaximaFilterHeight": 1025,  # Height of "window" used for finding maxima.
+    # Constellation - Maxima Filter Hyperparameters
+    "MaximaFilterWidth": 64,  # Width of "window" used for finding maxima.
+    "MaximaFilterHeight": 36,  # Height of "window" used for finding maxima.
     # Target Zone - Window Hyperparameters
-    "TargetZoneWidth": 100,  # Width (X-axis, Time) |
-    "TargetZoneHeight": 300,  # Height (Y-axis, Frequency) | 0 ~ Nyquist / 2
-    "TargetZoneTimeOffset": 10,  # Time (X-axis) offset to move target zone "forwards". |
+    "TargetZoneWidth": 90,  # Width (X-axis, Time) |
+    "TargetZoneHeight": 160,  # Height (Y-axis, Frequency) | 0 ~ Nyquist / 2
+    "TargetZoneTimeOffset": 64,  # Time (X-axis) offset to move target zone "forwards". |
     # Searching and Scoring
     "Threshold": 0.5,
     "Distance": 10
@@ -63,6 +69,17 @@ class Return(Enum):
     AUDIO_ERROR = -4  # Audio (playback) Error
     FILES_ERROR = -5  # File (soundfile) Error
     COLAB_ERROR = -6  # Google Colab Error
+
+
+class Properties(Enum):
+    Pickle = "get_compressed"
+    Y = "y"
+    STFT = "stft"
+    Constellation = "constellation"
+    Asterism = "asterism"
+    Hash = "hashes"
+    Duration = "Durations.pkl"
+    Shape = "Shapes.pkl"
 
 
 def timestamp(strftime: AnyStr = OPTIONS["TimestampFormat"]):

@@ -35,8 +35,8 @@ class Cacher(object):
     :type get_o: Dict[Integer, Integer]
     :ivar tracks: Dictionary of Track instances available in cache by Track title.
     :type tracks: Optional[Dict[AnyStr, Track]]
-    :ivar anchors: Dictionary of Anchor arrays of Track instances available in cache by Track title
-    :type anchors: Optional[Dict[AnyStr, np.ndarray]]
+    :ivar asterism: Dictionary of Asterism arrays of Track instances available in cache by Track title
+    :type asterism: Optional[Dict[AnyStr, np.ndarray]]
     :ivar cache: Cached memory
     :type cache: np.ndarray
     """
@@ -60,11 +60,11 @@ class Cacher(object):
         self.verbose: Boolean = verbose
         self.is_cached: Boolean = self.path is not None
         self.titles: List[AnyStr] = list()
-        for _filename in os.listdir(os.path.join(OPTIONS["CachePath"], Folders.Pickle.name)):
+        for _filename in os.listdir(os.path.join(OPTIONS["CachePath"], Properties.Pickle.name)):
             if _filename.endswith('.pkl'):
                 self.titles.append(
                     os.path.basename(
-                        os.path.splitext(os.path.join(OPTIONS["CachePath"], Folders.Pickle.name, _filename))[0]))
+                        os.path.splitext(os.path.join(OPTIONS["CachePath"], Properties.Pickle.name, _filename))[0]))
         self.shape: Tuple[Integer, Integer, Integer, Integer] = (
             len(self.titles), len(param_grid['width']), len(param_grid['height']), len(param_grid['offset']))
         self.get_t: Dict[AnyStr, Integer] = {self.titles[_i]: _i for _i in range(self.shape[0])}
@@ -72,7 +72,7 @@ class Cacher(object):
         self.get_h: Dict[Integer, Integer] = {self.param_grid['height'][_i]: _i for _i in range(self.shape[2])}
         self.get_o: Dict[Integer, Integer] = {self.param_grid['offset'][_i]: _i for _i in range(self.shape[3])}
         self.tracks: Optional[Dict[AnyStr, Track]] = None if self.is_cached else {}
-        self.anchors: Optional[Dict[AnyStr, np.ndarray]] = None if self.is_cached else {}
+        self.asterism: Optional[Dict[AnyStr, np.ndarray]] = None if self.is_cached else {}
         self.cache: np.ndarray = np.zeros(self.shape)
         if not self.is_cached:
             self.generate_cache()
@@ -84,8 +84,8 @@ class Cacher(object):
         _ctr: Integer = 0
         for title in self.titles:
             self.tracks[title] = load_from_pickle(
-                os.path.join(OPTIONS["CachePath"], Folders.Pickle.name, f'{title}.pkl'))
-            self.anchors[title] = np.load(os.path.join(OPTIONS["CachePath"], Folders.Anchor.name, f"{title}.npy"))
+                os.path.join(OPTIONS["CachePath"], Properties.Pickle.name, f'{title}.pkl'))
+            self.asterism[title] = np.load(os.path.join(OPTIONS["CachePath"], Properties.Asterism.name, f"{title}.npy"))
         for _t, _w, _h, _o in np.ndindex(*self.shape):  # np.ndindex raises warning it doesn't expect tuple; oversight?
             _title: AnyStr = self.titles[_t]
             _width: Integer = self.param_grid['width'][_w]
@@ -104,21 +104,21 @@ class Cacher(object):
 
     def get_len_hashes(self: class_name, title: AnyStr, width: Integer, height: Integer, offset: Integer) -> Integer:
         """
-        Get a HashSet dictionary of self's Constellation Map hashes.
+        Get a HashSet dictionary of self's Constellation hashes.
 
         :param title: Title of Track to evaluate
         :param width: Width of Target Zone to evaluate
         :param height: Height of Target Zone to evaluate
         :param offset: Offset of Target Zone to evaluate
-        :return: Amount of Constellation Map hashes generated from the parameters.
+        :return: Amount of Constellation hashes generated from the parameters.
         :rtype: Integer
         """
         if self.is_cached:
             return self.cache[self.get_t[title], self.get_w[width], self.get_h[height], self.get_o[offset]]
         _hashes_len: Integer = 0
         _track: Track = self.tracks[title]
-        _anchors: np.ndarray = self.anchors[title]  # TODO: Use get_anchors() if window width/height are not default.
-        for _anchor in _anchors:
+        _asterism: np.ndarray = self.asterism[title]  # TODO: Use get_asterism() if window width/height are not default.
+        for _anchor in _asterism:
             # Find Boundaries of Target Zone
             _t_min: Integer = _anchor[0] + offset  # Left
             _t_max: Integer = _t_min + width  # Right
@@ -127,8 +127,8 @@ class Cacher(object):
             # Clip appropriately (do not leave confines of array, nor go backwards in time.)
             _t_min, _t_max = np.clip(a=(_t_min, _t_max), a_min=_anchor[0] + 1, a_max=_track.shape[0] - 1)
             _f_min, _f_max = np.clip(a=(_f_min, _f_max), a_min=0, a_max=_track.shape[1] - 1)
-            # Create Target Zone from Constellation Map; Where maxima in Boundaries: True, Else: False
-            _hashes_len += len(filter_coordinates(_anchors, x_min=_t_min, x_max=_t_max, y_min=_f_min, y_max=_f_max))
+            # Create Target Zone from Constellation; Where maxima in Boundaries: True, Else: False
+            _hashes_len += len(filter_coordinates(_asterism, x_min=_t_min, x_max=_t_max, y_min=_f_min, y_max=_f_max))
         return _hashes_len
 
     def get_score(self: class_name, y_true, y_pred) -> Float:
