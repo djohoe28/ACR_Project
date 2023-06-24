@@ -93,6 +93,8 @@ def hashes_from_cached_constellation(title: AnyStr, target_width: Integer = OPTI
     """
     Get a Hash Set dictionary of self's Constellation hashes.
 
+    :param title: Title of song to cache
+    :type title: AnyStr
     :param target_width: Width of Target Zone
     :type target_width: Integer
     :param target_height: Height of Target Zone
@@ -141,22 +143,26 @@ def hashes_from_cached_constellation(title: AnyStr, target_width: Integer = OPTI
     return _hashes
 
 
-def get_titles(path: AnyStr = OPTIONS["DatabasePath"], cached: Boolean = False) -> List[AnyStr]:
+def get_titles(cached: Boolean = False, path: Optional[AnyStr] = None) -> List[AnyStr]:
     """
     Load a list of titles from cache if cached: else load from database.
 
-    :param cached: Load titles from cache?
+    :param path: Path to database/cache directory
+    :type path: Optional[AnyStr]
+    :param cached: Load titles from a cache?
     :type cached: Boolean
     :return: List of titles available.
     :rtype: List[AnyStr]
     """
+    if path is None:
+        path = OPTIONS["CachePath"] if cached else OPTIONS["DatabasePath"]
     _titles: List[AnyStr] = []
     if cached:
         # Get titles from cached/pickled Tracks
-        for _filename in os.listdir(os.path.join(OPTIONS["CachePath"], Properties.Pickle.name)):
+        for _filename in os.listdir(os.path.join(path, Properties.Pickle.name)):
             if _filename.endswith('.pkl'):
                 _titles.append(os.path.basename(os.path.splitext(
-                    os.path.join(OPTIONS["CachePath"], Properties.Pickle.name, _filename))[0]))
+                    os.path.join(path, Properties.Pickle.name, _filename))[0]))
     else:
         # Get titles from sound files
         _ext: (Union[AnyStr, Tuple[AnyStr, ...]]) = OPTIONS["RecordingExtension"]
@@ -191,6 +197,8 @@ def cache_database_by_track(path: AnyStr = OPTIONS["DatabasePath"],
     """
     Generate cache from files available in database.
 
+    :param path: Path to database
+    :param path: AnyStr
     :param plot_figures:
     :param verbose: Print additional data.
     :type verbose: Boolean
