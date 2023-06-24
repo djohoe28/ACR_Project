@@ -24,6 +24,9 @@ OPTIONS: Dict[AnyStr, Any] = {
     "COLAB": is_google_colab(),
     "Synchronous": True,
     "TimestampFormat": "%Y-%m-%d %H:%M:%S",
+    "CacheFile": "hash.pkl",
+    "SampleFile": "SAMPLE.wav",
+    "FullFile": "FULL.wav",
     # Database
     "MakeDirMode": 0o666,
     "DatabasePath": "C:/Users/DJoho/Downloads/_Database ACR Shazam",
@@ -41,7 +44,7 @@ OPTIONS: Dict[AnyStr, Any] = {
     "MaximaMaxSide": 256,
     "MaximaMaxPerimeter": 256,
     "AverageHashCount": 2500,
-    "CacheFilename": "cacher.npy",
+    "CacherFile": "training.npy",
     # Short-Time Fourier Transform (STFT) Parameters
     "NFFT": 2048,  # Number of FFTs (Fast Fourier Transforms)
     "HopLength": None,  # Hop Length - how many units should the STFT window move.

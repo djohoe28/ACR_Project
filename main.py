@@ -57,8 +57,10 @@ def main() -> Return:
     print("Hello! Welcome to the ACR Project!")
     running = True
     database: TrackList = TrackList()
-    database.hashes = np.load("hash.npy",
-                              allow_pickle=True)  # TODO: Loads hashes to memory - super important! Check if works!!
+    try:
+        database.hashes = load_from_pickle(os.path.join(OPTIONS["CachePath"], OPTIONS["CacheFile"]))
+    except FileNotFoundError:
+        print("No cache found, proceeding with empty database...")
 
     # Commands
     def load() -> Return:
@@ -72,7 +74,7 @@ def main() -> Return:
         else:
             _input = input("Please specify the path to the cache file you want added to the database: ")
             try:
-                _temp = np.load(_input, allow_pickle=True)
+                _temp = load_from_pickle(_input)
                 for k in _temp:
                     if k not in database.hashes:
                         database.hashes[k] = {}
@@ -95,21 +97,20 @@ def main() -> Return:
         print("Available Tracks:")
         for _i in range(len(database)):
             print(f"{_i}: {database[str(_i)].title}")
-        _track_id = input("Please enter Track ID:")
+        _track_title = input("Please enter Track title:")
         try:
-            _track_id = int(_track_id)
-            if _track_id == "":
+            if _track_title == "":
                 print("Cancelling...")
                 return Return.CANCEL
-            _track: Track = database[str(_track_id)]  # TODO: Search for names
+            _track: Track = database[_track_title]
             _track.play()
             return Return.SUCCESS
         except ValueError:
-            print("Not a valid Track ID number. Please try again.")
+            print("Not a valid Track title. Please try again.")
             return Return.VALUE_ERROR
-        except IndexError:
-            print("Track ID out of range. Please try again.")
-            return Return.INDEX_ERROR
+        # except IndexError:
+        #     print("Track ID out of range. Please try again.")
+        #     return Return.INDEX_ERROR
         except sd.PortAudioError:
             print("Error playing Track. Please try again.")
             return Return.AUDIO_ERROR
@@ -227,8 +228,7 @@ if not OPTIONS["DEBUG"]:
     main()
 else:
     print(f"Starting! {timestamp()}")
-    pickle_path: AnyStr = "C:/Users/DJoho/PycharmProjects/ACR_Project/Cache/Pickles/אביגייל רוז - הפרעות - לא טוב לי.pkl"
-    track: Track = Track("C:/Users/DJoho/Downloads/_Database ACR Shazam/אביגייל רוז - הפרעות - לא טוב לי.wav")
+    track: Track = Track(OPTIONS["FullFile"])
     start: Float = time.time()
     cached: bool = OPTIONS["CACHED"]
     titles: List[AnyStr] = get_titles(cached) if cached else cache_database_by_track(OPTIONS["DatabasePath"], True)

@@ -99,7 +99,7 @@ class Cacher(object):
                       f"O {_o + 1}/{self.shape[3]} | "
                       f"= {_ctr}/{self.cache.size}")
             self.cache[_t, _w, _h, _o] = self.get_len_hashes(_title, _width, _height, _offset)
-        self.path = os.path.join(OPTIONS["CachePath"], OPTIONS["CacheFilename"])
+        self.path = os.path.join(OPTIONS["CachePath"], OPTIONS["CacherFile"])
         np.save(self.path, self.cache)
 
     def get_len_hashes(self: class_name, title: AnyStr, width: Integer, height: Integer, offset: Integer) -> Integer:
@@ -146,7 +146,7 @@ class Cacher(object):
 
 
 def train(param_grid: Dict[AnyStr, Sequence],
-          filepath: Optional[AnyStr] = os.path.join(OPTIONS["CachePath"], OPTIONS["CacheFilename"]),
+          filepath: Optional[AnyStr] = os.path.join(OPTIONS["CachePath"], OPTIONS["CacherFile"]),
           verbose: Boolean = True) -> (Any, Any):
     """
     Optimizes the given parameters using GridSearchCV training.
