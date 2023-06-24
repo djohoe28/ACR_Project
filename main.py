@@ -57,7 +57,7 @@ def main() -> Return:
     print("Hello! Welcome to the ACR Project!")
     running = True
     database: TrackList = TrackList()
-    database.hashes = np.load("hash.npy")  # TODO: Loads hashes to memory - super important! Check if works!!
+    database.hashes = load_from_pickle("hash.npy")  # TODO: Loads hashes to memory - super important! Check if works!!
 
     # Commands
     def load() -> Return:
