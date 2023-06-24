@@ -205,7 +205,7 @@ def cache_database_by_track(path: AnyStr = OPTIONS["DatabasePath"],
     :return: List of titles available in cache.
     :rtype: List[AnyStr]
     """
-    _titles: List[AnyStr] = get_titles(False)[:1]
+    _titles: List[AnyStr] = get_titles(False)
     _shapes: Dict[AnyStr, Tuple[Integer, Integer]] = {}
     _durations: Dict[AnyStr, Float] = {}
     make_directories()

@@ -73,9 +73,9 @@ def main() -> Return:
             try:
                 _temp = np.load(_input)
                 for k in _temp:
-                    if k not in hashes:
-                        hashes[k] = {}
-                    hashes[k] += _temp[k]
+                    if k not in database.hashes:
+                        database.hashes[k] = {}
+                    database.hashes[k] += _temp[k]
                 print("Cache loaded successfully!")
             except FileNotFoundError:
                 print("File not found, please try again later.")
@@ -204,7 +204,7 @@ def main() -> Return:
 
 
 if __name__ == "__main__":
-    main()
+    pass  # main()
 
 # TODO:
 #  COMPLETE: Change Sample Rate -> Higher SR = shorter higher pitch
@@ -221,28 +221,29 @@ if __name__ == "__main__":
 #  NOTE: Mode5, MDA256, CRC checksum
 #  NOTE: matlab find, SIMD, parameter sweep, scipy research
 # NOTE: This is the code I was working on to properly set up the database.
-"""
-print(f"Starting! {timestamp()}")
-pickle_path: AnyStr = "C:/Users/DJoho/PycharmProjects/ACR_Project/Cache/Pickles/אביגייל רוז - הפרעות - לא טוב לי.pkl"
-track: Track = Track("C:/Users/DJoho/Downloads/_Database ACR Shazam/אביגייל רוז - הפרעות - לא טוב לי.wav")
-start: Float = time.time()
-cached: bool = OPTIONS["CACHED"]
-titles: List[AnyStr] = get_titles(cached) if cached else cache_database_by_track(True)
-titles = get_titles()
-hashes = {}
-for filename in os.listdir(OPTIONS["DatabasePath"]):
-    if not filename.endswith(OPTIONS["RecordingExtension"]):
-        continue
-    print(f"Hashing {filename}...")
-    track = Track(os.path.join(f'{OPTIONS["DatabasePath"]}/{filename}'))
-    _hashes = track.hashes  # hashes_from_cached_constellation(title)
-    for key in _hashes:
-        if key not in hashes:
-            hashes[key] = {}
-        for _title in _hashes[key]:
-            hashes[key][_title] = _hashes[key][_title]
-save_as_pickle("Hashes.pkl", hashes)
-# tracklist: TrackList = tracklist_from_directory()
-runtime: Float = time.time() - start
-print(f"Done! {timedelta(seconds=runtime)} = {len(titles)} songs loaded!")
-"""
+if not OPTIONS["DEBUG"]:
+    main()
+else:
+    print(f"Starting! {timestamp()}")
+    pickle_path: AnyStr = "C:/Users/DJoho/PycharmProjects/ACR_Project/Cache/Pickles/אביגייל רוז - הפרעות - לא טוב לי.pkl"
+    track: Track = Track("C:/Users/DJoho/Downloads/_Database ACR Shazam/אביגייל רוז - הפרעות - לא טוב לי.wav")
+    start: Float = time.time()
+    cached: bool = OPTIONS["CACHED"]
+    titles: List[AnyStr] = get_titles(cached) if cached else cache_database_by_track(OPTIONS["DatabasePath"], True)
+    titles = get_titles()
+    hashes = {}
+    for filename in os.listdir(OPTIONS["DatabasePath"]):
+        if not filename.endswith(OPTIONS["RecordingExtension"]):
+            continue
+        print(f"Hashing {filename}...")
+        track = Track(os.path.join(f'{OPTIONS["DatabasePath"]}/{filename}'))
+        _hashes = track.hashes  # hashes_from_cached_constellation(title)
+        for key in _hashes:
+            if key not in hashes:
+                hashes[key] = {}
+            for _title in _hashes[key]:
+                hashes[key][_title] = _hashes[key][_title]
+    save_as_pickle("Hashes.pkl", hashes)
+    # tracklist: TrackList = tracklist_from_directory()
+    runtime: Float = time.time() - start
+    print(f"Done! {timedelta(seconds=runtime)} = {len(titles)} songs loaded!")
