@@ -72,7 +72,7 @@ def main() -> Return:
         else:
             _input = input("Please specify the path to the cache file you want added to the database: ")
             try:
-                _temp = np.load(_input)
+                _temp = np.load(_input, allow_pickle=True)
                 for k in _temp:
                     if k not in database.hashes:
                         database.hashes[k] = {}
